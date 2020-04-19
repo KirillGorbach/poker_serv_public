@@ -1,0 +1,21 @@
+{
+  "name": "serv",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "description": "My first real serv",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "server",
+    "serv"
+  ],
+  "author": "Kirill Gorbach <kirill.gorbach@gmail.com>",
+  "dependencies": {
+    "express": "^4.17.1",
+    "http": "0.0.1-security",
+    "socket.io": "^2.3.0",
+    "xml2js": "^0.4.23"
+  }
+}
