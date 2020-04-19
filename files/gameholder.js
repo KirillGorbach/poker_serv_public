@@ -32,6 +32,40 @@ class GameHolder{
             this.players_cards.push({ playername: this.players_in_game[i].name, cards: [ deck_made[5+2*i], deck_made[5+2*i+1] ] });
     }
 
+    decreasePlayerMoney(player_name, val){
+        var index_g = this.getPlayerIndexInGame(player_name)
+        var index_a = this.getPlayerIndexInAll(player_name)
+        this.players[index_a].money -= val
+        this.players_in_game[index_g].money -= val
+        if (this.players[index_a].money < 0 || this.players_in_game[index_g].money < 0)
+            console.log("Player gets mins money!", player_name)
+    }
+
+    onCheck(player_name){
+        var index = this.getPlayerIndexInGame(player_name)
+        if(index != null && index == this.lead) {
+            this.decreasePlayerMoney(player_name, this.rate)
+            this.checkPlayerHasMoney(player_name)
+        }
+        this.changeLead()
+    }
+
+    onFold(player_name){
+        var index = this.getPlayerIndexInGame(player_name)
+        if(index != null && index == this.lead) this.players_in_game.splice(index, 1)
+        this.changeLead()
+    }
+
+    onRaise(player_name, new_val){
+        this.rate = val
+        var index = this.getPlayerIndexInGame(player_name)
+        if(index != null && index == this.lead) {
+            this.decreasePlayerMoney(player_name, this.rate)
+            this.checkPlayerHasMoney(player_name)
+        }
+        this.changeLead()
+    }
+
     getLead(){
         return this.lead
     }
@@ -108,6 +142,36 @@ class GameHolder{
         this.lead++
         if (this.lead >= this.players_in_game.length)
             this.lead = 0
+    }
+
+    getPlayerIndexInGame(player_name){
+        var res = null
+        this.players_in_game.forEach(function (item, i) {
+            if(item.name.equals(player_name)){
+                res = i
+            }
+        })
+        return res
+    }
+
+    getPlayerIndexInAll(player_name){
+        var res = null
+        this.players.forEach(function (item, i) {
+            if(item.name.equals(player_name)){
+                res = i
+            }
+        })
+        return res
+    }
+
+    checkPlayerHasMoney(player_name){
+        var index = this.getPlayerIndexInGame(player_name)
+        if(this.players_in_game[index].money <= 0 ){
+            if(index!=null) this.players_in_game.splice(index, 1)
+            return false
+        }else{
+            return true
+        }
     }
 }
 

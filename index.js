@@ -49,8 +49,8 @@ for (let i=0; i < 5 ; i++){
 
 
 io.sockets.on('connection', function (socket) {
-        var ID = (socket.id).toString();
-        console.log("ID:", ID);
+        var ID = (socket.id).toString()
+        console.log("ID:", ID)
 
         socket.on('authenticate', function (msg) {
             var user = playersBaseHolder.authPlayer(msg.name, msg.password);
@@ -60,10 +60,10 @@ io.sockets.on('connection', function (socket) {
                 socks.addUser(user)
             }else
                 socket.emit('authentication', {flag: false, item: {}})
-        });
+        })
 
         socket.on('registration', function (data) {
-            var is_already_registered = false;
+            var is_already_registered = false
 
             playersBaseHolder.getPayers().forEach(function (item, i, array) {
                 if (item.name == data.name) {
@@ -71,7 +71,7 @@ io.sockets.on('connection', function (socket) {
                     //если уже зареган, то посылаем отказ регистрации
                     socket.emit('registration', {is_reg: is_already_registered, player: {}})
                 }
-            });
+            })
             if (!is_already_registered) {
                 var max_id = 0
                 playersBaseHolder.getPayers().forEach(function (item, i, array) {
@@ -92,11 +92,11 @@ io.sockets.on('connection', function (socket) {
 
                 socks.addUser(new_player)
             }
-        });
+        })
 
         socket.on('getlobbies', function (data) {
-            socket.emit('lobbies', rooms.getAllRooms());
-        });
+            socket.emit('lobbies', rooms.getAllRooms())
+        })
 
         socket.on('enterlobby', (data) => {
             if (rooms.checkIfCanJoinRoom(data.lobbyname)) {
@@ -120,7 +120,7 @@ io.sockets.on('connection', function (socket) {
             }else{
                 socket.emit('enteredlobby', false)
             }
-        });
+        })
 
         //data = {lobbyname: , name:}
         socket.on('leavelobby', (data) => {
@@ -128,12 +128,15 @@ io.sockets.on('connection', function (socket) {
             socket.emit('youleavedlobby', {money: rooms.getPlayerMoney(data.name)})
             playersBaseHolder.updatePlayerMoney(data.name, rooms.getPlayerMoney(data.name))
             rooms.onPlayerLeave(data.name)
+            socks.userLeaveRoom(data.name)
             console.log("Player left", data.lobbyname, data.name)
             /////
-        });
+        })
+
+        socket.on('')
 
         socket.on('yess', (msg) => {
             console.log("Got from client:",msg);
-        });
-    });
+        })
+    })
 

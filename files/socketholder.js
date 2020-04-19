@@ -8,6 +8,14 @@ class SocketHolder{
     constructor() {
         this.sockids = []
     }
+
+    userLeaveRoom(player_name){
+        this.sockids.forEach(function (item) {
+            if (item.name == player_name)
+                item.room = ""
+        })
+    }
+
     addUser(sock_id, user){
         this.sockids.push({sock_id: sock_id, name: user.name, user: user})
     }
