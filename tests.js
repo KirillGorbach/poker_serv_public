@@ -1,12 +1,29 @@
 var testGame = require('./files/gameholder.js');
 var roomsHolder = require('./files/roomholder.js');
-var roomHolder = new roomsHolder.RoomHolder();
+var rHolder = new roomsHolder.RoomHolder();
 var room = new roomsHolder.Room('room1');
 var sock_holder = require('./files/socketholder.js')
 var socks = new sock_holder.SocketHolder()
+var fs = require('fs')
+var playersHolder = require('./files/playerbaseholder');
+var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
 
-testRoom()
+//testPlayerBaseHolder()
+testRoomHolder()
+//testRoom()
 //testGH()
+
+function testPlayerBaseHolder() {
+    playersBaseHolder.loadPlayersFromBase()
+    console.log(playersBaseHolder.getPayers())
+    playersBaseHolder.addPlayer({name:'Asd', password:'asd', id:10, money:100, picture:2})
+    console.log(playersBaseHolder.getPayers())
+    console.log(playersBaseHolder.authPlayer('Asd', 'asd'))
+    playersBaseHolder.save()
+    playersBaseHolder.loadPlayersFromBase()
+    console.log(playersBaseHolder.getPayers())
+    //console.log(playersBaseHolder.getPayers())
+}
 
 function testRoom() {
     const actions = {
@@ -17,16 +34,29 @@ function testRoom() {
         ,leave:"leave"
     }
     room.addPlayer({name:'Kirill0', money:100})
+    room.initPlayerHandPower('Kirill0', 122000000002)
     room.addPlayer({name:'Kirill1', money:100})
+    room.initPlayerHandPower('Kirill1', 61231231311)
+    room.addPlayer({name:'Kirill2', money:100})
+    room.initPlayerHandPower('Kirill2', 1230000000001)
+    room.addPlayer({name:'Kirill3', money:100})
+    room.initPlayerHandPower('Kirill3', 12123123123)
+    room.addPlayer({name:'Kirill4', money:100})
+    room.initPlayerHandPower('Kirill4', 1230000000001)
+    console.log(room.checkIfGameCanStart())
+    room.startGame()
     console.log(room.game_holder.players)
-    testRoomPlayerActs(actions.allin, "", 100)
-    testRoomPlayerActs(actions.raise, "", 100)
+    console.log(room.game_holder.players_in_game)
+    testRoomPlayerActs(actions.check)
+    testRoomPlayerActs(actions.check)
+    testRoomPlayerActs(actions.fold)
+    testRoomPlayerActs(actions.allin)
+    testRoomPlayerActs(actions.allin)
     /*room.addPlayer({name:'Kirill2', money:100})
     room.addPlayer({name:'Kirill3', money:100})
     room.addPlayer({name:'Kirill4', money:100})*/
 
 }
-
 function testRoomPlayerActs(action, le_n="", val=-1) {
     console.log('\n')
     switch (action) {
@@ -53,8 +83,11 @@ function testRoomPlayerActs(action, le_n="", val=-1) {
     }
 
     console.log(room.game_holder.players_in_game)
-    console.log("bamk", room.game_holder.bank)
+    console.log("bank", room.game_holder.bank)
     console.log("EndGame?",room.checkEndGame())
+    if(room.checkEndGame()){
+        console.log(room.getWinners())
+    }
 }
 function testTicker() {
     var ticker = new testGame.Ticker()
@@ -104,8 +137,92 @@ function testTicker() {
     console.log('all ready?', ticker.tickIfEnd())*/
 }
 function testRoomHolder() {
-    //console.log(rooms.checkIfCanJoinRoom('room1'));
-    //console.log(rooms.getAllRooms())
+    const actions = {
+        check: "check"
+        ,raise:"raise"
+        ,fold:"fold"
+        ,allin:"all in"
+        ,leave:"leave"
+    }
+    const nameRoom1 = "room1"
+    const pl0 = 'Kirill0'
+    const pl1 = 'Kirill1'
+    const pl2 = 'Kirill2'
+    const pl3 = 'Kirill3'
+    const pl4 = 'Kirill4'
+    if(rHolder.checkIfCanJoinRoom(nameRoom1))
+        rHolder.addToRoom(nameRoom1, {name: pl0, money: 100, picture: 1})
+
+    if(rHolder.checkIfCanJoinRoom(nameRoom1))
+        rHolder.addToRoom(nameRoom1, {name: pl1, money: 100, picture: 1})
+
+    if(rHolder.checkIfCanJoinRoom(nameRoom1))
+        rHolder.addToRoom(nameRoom1, {name: pl2, money: 100, picture: 1})
+
+    if(rHolder.checkIfCanJoinRoom(nameRoom1))
+        rHolder.addToRoom(nameRoom1, {name: pl3, money: 100, picture: 1})
+
+    if(rHolder.checkIfCanJoinRoom(nameRoom1))
+        rHolder.addToRoom(nameRoom1, {name: pl4, money: 100, picture: 1})
+
+
+    console.log(rHolder.getAllRooms())
+    console.log(rHolder.getFullRommParams(nameRoom1))
+
+    if(rHolder.checkIfGameCanStart(nameRoom1)){
+        rHolder.startGame(nameRoom1)
+        console.log(rHolder.getFullRommParams(nameRoom1))
+        console.log(rHolder.getCardsAfterGameStart(nameRoom1))
+        rHolder.initPlayerHand('Kirill0', 400013131222)
+        rHolder.initPlayerHand('Kirill1', 511212000000)
+        rHolder.initPlayerHand('Kirill2', 100010100000)
+        rHolder.initPlayerHand('Kirill3', 521212000000)
+        rHolder.initPlayerHand('Kirill4', 511212000000)
+        testRoomHolderActs(actions.check)
+        testRoomHolderActs(actions.check)
+        testRoomHolderActs(actions.leave, 0, rHolder.getRoomLead(nameRoom1))
+        testRoomHolderActs(actions.check)
+        testRoomHolderActs(actions.fold)
+        testRoomHolderActs(actions.allin)
+        testRoomHolderActs(actions.allin)
+        testRoomHolderActs(actions.allin)
+    }
+}
+function testRoomHolderActs(action, val=0, name="") {
+    const nameRoom1 = "room1"
+    console.log('\n')
+    switch (action) {
+        case "all in":
+            console.log("lead allin",rHolder.getRoomLead(nameRoom1))
+            rHolder.onAllIn(rHolder.getRoomLead(nameRoom1))
+            break
+        case "check":
+            console.log("lead check",rHolder.getRoomLead(nameRoom1))
+            rHolder.onCheck(rHolder.getRoomLead(nameRoom1))
+            break
+        case "raise":
+            console.log("lead allin",rHolder.getRoomLead(nameRoom1))
+            rHolder.onRaise(rHolder.getRoomLead(nameRoom1), val)
+            break
+        case "fold":
+            console.log("lead fold",rHolder.getRoomLead(nameRoom1))
+            rHolder.onFold(rHolder.getRoomLead(nameRoom1))
+            break
+        case "leave":
+            console.log("leaves",rHolder.getRoomLead(nameRoom1))
+            rHolder.onPlayerLeave(name)
+            break
+    }
+    console.log("in game:\n",rHolder.rooms[0].game_holder.players_in_game)
+    console.log("in ticker:\n",rHolder.rooms[0].game_holder.ticker.players)
+    console.log("bamk",rHolder.getRoomBank(nameRoom1))
+    console.log("EndGame?", rHolder.checkGameEnd(nameRoom1))
+    if(rHolder.checkGameEnd(nameRoom1)) {
+        console.log(rHolder.rooms[0].game_holder.players_hands)
+        console.log("Winners!", rHolder.getWinners(nameRoom1))
+        console.log(rHolder.rooms[0].game_holder.players)
+        console.log(rHolder.rooms[0].game_holder.players_in_game)
+    }
 }
 function testGH() {
     let gh_players = [

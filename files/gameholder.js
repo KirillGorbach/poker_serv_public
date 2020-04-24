@@ -9,6 +9,7 @@ class GameHolder{
         this.players_cards = []
         this.ticker = new Ticker()
         this.isFinished = false
+        this.players_hands = []
     }
 
     start(){
@@ -38,7 +39,7 @@ class GameHolder{
     }
 
     decreasePlayerMoney(player_name, val){
-        if(val != -1) {
+        if(val !== -1) {
             var index_g = this.getPlayerIndexInGame(player_name)
             var index_a = this.getPlayerIndexInAll(player_name)
             //console.log("this.players_in_game[index_g].money", this.players_in_game[index_g].money)
@@ -59,11 +60,22 @@ class GameHolder{
         }
     }
 
+    increasePlayerMoney(player_name, val){
+        if(val !== -1) {
+            var index_g = this.getPlayerIndexInGame(player_name)
+            var index_a = this.getPlayerIndexInAll(player_name)
+
+            this.players_in_game[index_g].money += val
+            if (this.players[index_a].money < 0 || this.players_in_game[index_g].money < 0)
+                console.log("<----------ACHTUNG! Player gets mins money!", player_name)
+        }
+    }
+
     onAllIn(player_name){
         //console.log("in AllIn player_name", player_name)
         if(this.isRunning) {
             var index = this.getPlayerIndexInGame(player_name)
-            if (index != null && player_name == this.ticker.getLeadPlayer()) {
+            if (index != null && player_name === this.ticker.getLeadPlayer()) {
 
                 this.bank += this.players_in_game[index].money
                 this.decreasePlayerMoney(player_name, -1) // -1 - код, забирающий все деньги
@@ -86,10 +98,10 @@ class GameHolder{
 
     onCheck(player_name){
         if(this.isRunning) {
-            if (player_name == this.ticker.getLeadPlayer()) {
+            if (player_name === this.ticker.getLeadPlayer()) {
                 this.decreasePlayerMoney(player_name, this.rate)
                 this.bank += this.rate
-                if(this.players[this.getPlayerIndexInGame(player_name)].money == 0) this.ticker.setReadyToFinish(player_name)
+                if(this.players[this.getPlayerIndexInGame(player_name)].money === 0) this.ticker.setReadyToFinish(player_name)
                 if (this.ticker.tickIfEnd()){
                     this.endProcedure()
                     return false
@@ -105,9 +117,11 @@ class GameHolder{
 
     onFold(player_name){
         if(this.isRunning) {
-            if (player_name == this.ticker.getLeadPlayer()) {
-                this.ticker.setReadyToFinish(player_name)
-                if (this.ticker.tickIfEnd()) {
+            if (player_name === this.ticker.getLeadPlayer()) {
+                this.ticker.removePlayerFromTicker(player_name)
+                let index = this.getPlayerIndexInGame(player_name)
+                if (index != null) this.players_in_game.splice(index, 1)
+                if (this.ticker.tickIfEnd(true)) {
                     this.endProcedure()
                     return false
                 }else {
@@ -130,7 +144,7 @@ class GameHolder{
                 if(this.checkPlayerHasMoney(player_name)) {
                     this.decreasePlayerMoney(player_name, this.rate)
                     this.bank += this.rate
-                    if(this.players[this.getPlayerIndexInGame(player_name)].money == 0) this.ticker.setReadyToFinish(player_name)
+                    if(this.players[this.getPlayerIndexInGame(player_name)].money === 0) this.ticker.setReadyToFinish(player_name)
                 }
                 if (this.ticker.tickIfEnd()) {
                     this.endProcedure()
@@ -145,45 +159,51 @@ class GameHolder{
             return false
     }
 
-    getLead(){
-        return this.ticker.getLeadPlayer()
-    }
+    getLead(){ return this.ticker.getLeadPlayer() }
 
     onPlayerLeaves(player_name){
-        if(this.isRunning) {
-            this.ticker.removePlayerFromTicker(player_name)
+        //console.log("running?", this.isRunning, "in game?", this.hasPlayerInGame(player_name), "name?",player_name)
+        if(this.isRunning && this.hasPlayerInGame(player_name)) {
+            //console.log("asd")
+            let res = false
+            if(this.ticker.onPlayerLeft(player_name)){
+                this.endProcedure()
+                res = false
+            }else {
+                if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
+                res = true
+            }
             let index = this.getPlayerIndexInGame(player_name)
             if (index != null) this.players_in_game.splice(index, 1)
             let index1 = this.getPlayerIndexInAll(player_name)
             if (index1 != null) this.players.splice(index1, 1)
+            return res
         }else{
             var index = this.getPlayerIndexInAll(player_name)
             if (index != null) this.players.splice(index, 1)
+            return false
         }
     }
 
-    addPlayer(new_player){
-        if(!this.isRunning) this.players.push(new_player)
-    }
+    addPlayer(new_player){ this.players.push(new_player) }
 
-    getCardsOnTable(){
-        return this.cards_on_table;
-    }
+    getCardsOnTable(){ return this.cards_on_table }
 
     getPlayerCards(player_name){
         var res = null;
         console.log(this.players_cards)
-        res = this.players_cards.filter(i => i.playername == player_name)
+        res = this.players_cards.filter(i => i.playername === player_name)
         console.log(res)
-        return res!=[]?res[0].cards:null
+        return res!==[]?res[0].cards:null
 
     }
 
     checkIfCanStart(){
-        if(this.players.length > 1 && this.players.length <= 5)
-            return true;
-        else
-            return false;
+        return this.players.length > 1 && this.players.length <= 5
+        //if(this.players.length > 1 && this.players.length <= 5)
+        //    return true;
+        //else
+        //    return false;
     }
 
     getCardsAfterStart(){
@@ -208,7 +228,7 @@ class GameHolder{
     getPlayerIndexInGame(player_name){
         var res = null
         this.players_in_game.forEach(function (item, i) {
-            if(item.name == player_name){
+            if(item.name === player_name){
                 res = i
             }
         })
@@ -218,7 +238,7 @@ class GameHolder{
     getPlayerIndexInAll(player_name){
         var res = null
         this.players.forEach(function(item, i) {
-            if(item.name == player_name){
+            if(item.name === player_name){
                 res = i
             }
         })
@@ -238,37 +258,59 @@ class GameHolder{
 
     checkPlayerMoneyRight(player_name){
         var index = this.getPlayerIndexInGame(player_name)
-        if (index != null) {
-            if (this.players_in_game[index].money >= 0) {
-                //console.log("money right",player_name, this.players_in_game[index].money);
-                return true
-            } else {
-                //console.log("money not right",player_name, this.players_in_game[index].money);
-                return false
-            }
-        }else{
+        if (index != null)
+            return this.players_in_game[index].money >= 0
+            //if (this.players_in_game[index].money >= 0) {
+            //    //console.log("money right",player_name, this.players_in_game[index].money);
+            //    return true
+            //} else {
+            //    //console.log("money not right",player_name, this.players_in_game[index].money);
+            //    return false
+            //}
+        else
             return true
-        }
-        return null
     }
 
-    endProcedure(){
-        this.isFinished = true
-        let winners = []
-        for (let i=0; i<this.players_in_game.length; i++){
-            let buffer = this.players_in_game[i]
-            winners.push(buffer)
-        }
-        console.log("Ending game! Winners:", winners)
-    }
+    endProcedure(){ this.isFinished = true; this.isRunning = false }
     getIsFinished(){ return this.isFinished }
+    getWinners(){
+        if(!this.isRunning){
+            for(let i=0; i<this.players_in_game.length; i++){
+                this.players_in_game[i].power = this.getPowerInside(this.players_in_game[i].name)
+            }
+            console.log(this.players_in_game)
+            let maxPower = 0
+            let winners = []
+            console.log(this.players_in_game.length)
+            for(let i=0; i<this.players_in_game.length; i++) {
+                if(maxPower === this.players_in_game[i].power)
+                    winners.push(this.players_in_game[i].name)
+                else{
+                    if (maxPower < this.players_in_game[i].power) {
+                        maxPower = this.players_in_game[i].power
+                        winners = []
+                        winners.push(this.players_in_game[i].name)
+                    }
+                }
+            }
+            let win_val = Math.floor(this.bank/winners.length)
 
+            for(let i=0; i<winners.length; i++)
+                this.increasePlayerMoney(winners[i], win_val)
+
+
+            return {win_val:win_val, winners:winners}
+        }
+        else{
+            return null
+        }
+    }
     deleteEmptyPlayers(){
         var indexes_to_delete = []
         for(let i=0; i<this.players_in_game.length; i++){
             let isToDelete = true
             for(let j=0; j<this.ticker.players.length; j++){
-                if(this.players_in_game[i].name == this.ticker.players[j])
+                if(this.players_in_game[i].name === this.ticker.players[j].name)
                     isToDelete = false
             }
             if(isToDelete) {
@@ -277,7 +319,23 @@ class GameHolder{
             }
         }
     }
-
+    initPlayerHandPower( player_name, hand_power=-1){ this.players_hands.push({name:player_name, power:hand_power}) }
+    getPowerInside(player_name){
+        let res = null
+        for(let i=0; i<this.players_hands.length; i++)
+            if(this.players_hands[i].name === player_name)
+                res = this.players_hands[i].power
+        return res
+    }
+    hasPlayerInGame(player_name){
+        let res = null
+        //console.log("in hasPlayer ", this.players_in_game)
+        //console.log("name?? ", player_name)
+        for(let i=0; i<this.players_in_game.length; i++)
+            if(this.players_in_game[i].name === player_name)
+                res = true
+        return res
+    }
 }
 
 class Ticker{
@@ -311,16 +369,25 @@ class Ticker{
         //console.log("           Removing: Old lead", this.players[this.lead_player].name)
         if(index != null) {
             //console.log("<-----lead now", this.players[this.lead_player].name, "removing", this.players[index].name)
-            if(index < this.lead_player)
+            if(index === this.lead_player && index === this.players.length-1)
                 this.lead_player--
-            if(index == this.lead_player && index == this.players.length-1)
-                this.lead_player--
+            //if(index === this.lead_player && index !== 0)
+            //    this.lead_player--
             this.players.splice(index, 1)
             if(this.checkIfRoundDone())
                 this.newRound()
         }
         //console.log("           Removing: New lead", this.players[this.lead_player].name)
     }
+
+    onPlayerLeft(player_name){
+        this.removePlayerFromTicker(player_name)
+        return this.countReadToFinish() >= this.players.length || this.players.length === 1
+        //if (this.countReadToFinish() >= this.players.length || this.players.length === 1) {
+        //    return true
+        //}else return false
+    }
+
     changeLeadPlayer(){
         this.lead_player ++
 
@@ -346,16 +413,16 @@ class Ticker{
             }
         this.round_counter++
     }
-    tickIfEnd(){
+    tickIfEnd(fold=false){
         if(this.hasPlayers()) {
             if(this.round_changed)
                 this.round_changed = false
             var res = false
             this.players[this.lead_player].done = true
-           // console.log("      Old lead", this.players[this.lead_player])
-            this.changeLeadPlayer()
+            // console.log("      Old lead", this.players[this.lead_player])
+            if(!fold) this.changeLeadPlayer()
             //console.log("      New lead", this.players[this.lead_player])
-            if (this.countReadToFinish() >= this.players.length || this.players.length == 1)
+            if (this.countReadToFinish() >= this.players.length || this.players.length === 1)
                 res = true
             if (this.checkIfRoundDone() && !res) {
                 this.newRound()
@@ -370,7 +437,7 @@ class Ticker{
     getPlayerIndex(player_name){
         var res = null
         this.players.forEach(function (item, i) {
-            if(item.name == player_name)
+            if(item.name === player_name)
                 res = i
         })
         return res

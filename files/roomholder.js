@@ -12,17 +12,26 @@ class RoomHolder{
         this.rooms.push(this.room2)
     }
 
+    startGame(room_name){
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].getName() === room_name)
+                this.rooms[i].startGame()
+    }
+
     onPlayerLeave(player_name){
+        var res = false
         this.rooms.forEach(function (item) {
-            item.onPlayerLeaveInRoom(player_name)
+            if(item.onPlayerLeaveInRoom(player_name))
+                res = true
         })
+        return res
     }
 
 
     getAllRooms(){
         var res = []
         this.rooms.forEach(function (item, i, array) {
-            res.push(item.getJSON())
+            res.push(item.getShortJSON())
         })
         return { rooms: res}
     }
@@ -47,30 +56,51 @@ class RoomHolder{
     getRoom(room_name) {
         var result = null
         this.rooms.forEach(function (item, i, array) {
-            if (room_name == item.getName())
-                result = item.getJSON()
+            if (room_name === item.getName())
+                result = item.getShortJSON()
         })
         return result
     }
 
-    getRoomNoPsw(room_name){
+    getRoomPlayersForSave(room_name){
+        var result = null
+        this.rooms.forEach(function (item, i, array) {
+            if (room_name === item.getName())
+                result = item.getPlayers()
+        })
+        return result
+    }
+
+    getFullRommParams(room_name){
+        var result = null
+        this.rooms.forEach(function (item, i, array) {
+            if (room_name == item.getName())
+                result = item.getFullJSON()
+        })
+        return result
+    }
+
+    //Пофикшено: теперь игрок в комнате не имеет поля "пароль"
+    /*getRoomNoPsw(room_name){
         var result = null
         this.rooms.forEach(function (item, i, array) {
             if (room_name == item.getName()) {
-                result = item.getJSON()
+                result = item.getShortJSON()
                 result.players.forEach(function (ite) {
                     ite.password = ""
                 })
             }
         })
         return result
-    }
+    }*/
 
-    updatePlayerMoney(player_name, new_money){
+
+    //на мой взгляд, это не нужно - только игра может обновлять деньги
+    /*updatePlayerMoney(player_name, new_money){
         this.rooms.forEach(function (item, i, array) {
             item.updatePlayerMoney(player_name, new_money)
         })
-    }
+    }*/
 
     getPlayerMoney(player_name){
         var res = null
@@ -91,22 +121,17 @@ class RoomHolder{
     checkIfCanJoinRoom(room_name){
         var res = false
         this.rooms.forEach(function (item, i, array) {
-            if(room_name == item.getName()) {
-                if(item.getLength() < 5) {
-                    res = true
-                    //return true;
-                }
-            }
+            if(room_name === item.getName())
+                res = item.checkCanAdd()
         })
         return res
-        //return false;
     }
 
-    checkIfGameStart(room_name){
+    checkIfGameCanStart(room_name){
         var res = false
         this.rooms.forEach(function (item) {
-            if (item.getName() == room_name)
-                res = item.checkIfGameStart()
+            if (item.getName() === room_name)
+                res = item.checkIfGameCanStart()
         })
         return res
     }
@@ -123,9 +148,8 @@ class RoomHolder{
     onCheck(player_name){
         var res = false
         this.rooms.forEach(function (item) {
-            let roomres = item.onCheck(player_name)
-            if(roomres != null)
-                res = roomres
+            if(item.hasPlayer(player_name))
+                res = item.onCheck(player_name)
         })
         return res
     }
@@ -133,9 +157,8 @@ class RoomHolder{
     onFold(player_name){
         var res = false
         this.rooms.forEach(function (item) {
-            let roomres = item.onFold(player_name)
-            if(roomres != null)
-                res = roomres
+            if(item.hasPlayer(player_name))
+                res = item.onFold(player_name)
         })
         return res
     }
@@ -143,19 +166,65 @@ class RoomHolder{
     onRaise(player_name, new_rate){
         var res = false
         this.rooms.forEach(function (item) {
-            let roomres = item.onRaise(player_name)
-            if(roomres != null)
-                res = roomres
+            if(item.hasPlayer(player_name))
+                res = item.onRaise(player_name, new_rate)
         })
         return res
+    }
+
+    onAllIn(player_name){
+        var res = false
+        this.rooms.forEach(function (item) {
+            if(item.hasPlayer(player_name))
+                res = item.onAllIn(player_name)
+        })
     }
 
     getRoomLead(room_name){
         var res = null
         this.rooms.forEach(function (item) {
-            if(item.name == room_name)
+            if(item.name === room_name)
                 res = item.getLead()
         })
+        return res
+    }
+
+    initPlayerHand( player_name, hand_power = 0){
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].hasPlayer(player_name)){
+                this.rooms[i].initPlayerHandPower(player_name, hand_power)
+                break
+            }
+    }
+
+    getRoomRate(room_name){
+        let res = null
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].getName() === room_name)
+                res = this.rooms[i].getRate()
+        return res
+    }
+
+    checkGameEnd(room_name){
+        let res = null
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].getName() === room_name)
+                res = this.rooms[i].checkEndGame()
+        return res
+    }
+    getWinners(room_name){
+        let res = null
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].getName() === room_name)
+                res = this.rooms[i].getWinners()
+        return res
+    }
+
+    getRoomBank(room_name){
+        let res = null
+        for(let i=0; i<this.rooms.length; i++)
+            if(this.rooms[i].getName() === room_name)
+                res = this.rooms[i].getBank()
         return res
     }
 }
@@ -167,6 +236,8 @@ class Room{
         this.players = []
         this.game_holder = new gh.GameHolder([])
     }
+
+    getCardsOnTable(){ return this.game_holder.getCardsOnTable() }
 
     onRaise(player_name, new_rate){
         if(this.hasPlayer(player_name))
@@ -184,36 +255,57 @@ class Room{
 
     onCheck(player_name){
         if(this.hasPlayer(player_name))
-            this.game_holder.onCheck(player_name)
+            return this.game_holder.onCheck(player_name)
         else
             return null
     }
 
     onPlayerLeaveInRoom(player_name){
         if(this.hasPlayer(player_name)) {
-            this.game_holder.onPlayerLeaves(player_name)
-            this.players.splice(this.getPlayerIndex(player_name), 1)
+            let res = this.game_holder.onPlayerLeaves(player_name)
+            this.updatePlayers()
+            return res
+            //this.players.splice(this.getPlayerIndex(player_name), 1)
         }
+        return false
     }
 
-    getJSON(){
-        return { name: this.name, length: this.length, players: this.players }
+    getShortJSON(){  return { name: this.name, length: this.length }   }
+    getFullJSON(){
+        let g_pl = []
+        for(let i=0; i<this.game_holder.players_in_game.length; i++)
+            g_pl.push({ name: this.game_holder.players_in_game[i].name
+                        ,money: this.game_holder.players_in_game[i].money
+                        ,picture: this.game_holder.players_in_game[i].picture
+                        })
+        let a_pl = []
+        for(let i=0; i<this.game_holder.players.length; i++)
+            a_pl.push({ name: this.game_holder.players[i].name
+                        ,money: this.game_holder.players[i].money
+                        ,picture: this.game_holder.players[i].picture
+                        })
+        return {
+            isgamerunning:this.game_holder.isRunning
+            ,name:this.name
+            ,deck:this.getCardsOnTable()
+            ,playersingame:g_pl
+            ,allplayers:a_pl
+        }
     }
 
     removePlayer(player_name){
         this.length--
         var index = -1
-        this.players.forEach(function (item, i, array) {
-            if(item.name == player_name)
+        for(let i=0; i<this.players.length; i++)
+            if(this.players[i].name === player_name)
                 index = i
-        })
-        if(index != -1)
+        if(index !== -1)
             this.players.splice(index, 1)
     }
 
     updatePlayerMoney(player_name, new_money){
         this.players.forEach(function (item, i, array) {
-            if(item.name == player_name)
+            if(item.name === player_name)
                 item.money = new_money
         })
     }
@@ -225,8 +317,8 @@ class Room{
             this.length++
             this.players.push({name: player.name, money:player.money } )
             this.game_holder.addPlayer(player)
-            if (this.game_holder.checkIfCanStart())
-                this.game_holder.start()
+           //if (this.game_holder.checkIfCanStart()&&!this.game_holder.isRunning)
+           //    this.game_holder.start()
         }
 
     }
@@ -250,27 +342,26 @@ class Room{
         let res = null
         let b = this.game_holder.players
         for(let i=0; i<b.length; i++){
-            if(b[i].name == player_name)
+            if(b[i].name === player_name)
                 res = b[i].money
         }
         return res
     }
 
-    getPlayers(){  return this.players  }
+    getPlayers(){  return this.game_holder.players  }
 
     getName(){  return this.name  }
 
     getLength(){ return this.length  }
 
-    checkCanAdd(){
-        if(this.length < 5)
-            return true
-        else
-            return false
-    }
+    checkCanAdd(){ return this.length < 5 }
 
-    checkIfGameStart(){
-        return this.game_holder.checkIfCanStart()
+    checkIfGameCanStart(){ return this.game_holder.checkIfCanStart() && !this.game_holder.isRunning }
+
+    startGame(){
+        if(this.game_holder.checkIfCanStart()){
+            this.game_holder.start()
+        }
     }
 
     getCardsAfterStart(){
@@ -278,7 +369,7 @@ class Room{
     }
 
     hasPlayer(player_name){
-        let b = this.players.push(i=>i.name == player_name)
+        let b = this.players.push(i=>i.name === player_name)
         if (b!=[])
             return true
         else
@@ -292,14 +383,17 @@ class Room{
     getPlayerIndex(player_name){
         var res = null
         this.players.forEach(function (item, i) {
-            if(item.name == player_name)
+            if(item.name === player_name)
                 res = i
         })
         return res
     }
 
     getRate(){ return this.game_holder.rate }
+    getBank(){ return this.game_holder.bank }
     checkEndGame(){ return this.game_holder.getIsFinished() }
+    getWinners(){ return this.game_holder.getWinners() }
+    initPlayerHandPower(player_name, hand_power){ return this.game_holder.initPlayerHandPower(player_name, hand_power) }
 }
 
 module.exports = {RoomHolder, Room}

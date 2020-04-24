@@ -6,17 +6,18 @@ class PlayersBaseHolder{
         //this.fs = fs; //require('fs');
         this.players = [];
         this.name = "";
-        this.setPlayers();
+        this.loadPlayersFromBase();
     }
 
     updatePlayerMoney(player_name, new_money){
         this.players.forEach(function (item) {
-            if(item.name == player_name)
+            if(item.name === player_name)
                 item.money = new_money
         })
     }
 
-    setPlayers(){
+    loadPlayersFromBase(){
+        this.players = []
         var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
         var words = JSON.parse(data);
         for (let i=0; i<words.players.length; i++)
@@ -28,13 +29,12 @@ class PlayersBaseHolder{
     }
 
     authPlayer(player_name, player_password){
-        var res = null;
+        var res = null
         this.players.forEach(function (item, i, array) {
             //console.log("item name & msg.name:", item.name, msg.name);
-            if (player_name == item.name && player_password== item.password) {
-                res = item;
-            }
-        });
+            if (player_name === item.name && player_password === item.password)
+                res = item
+        })
         return res;
     }
 
@@ -51,6 +51,46 @@ class PlayersBaseHolder{
         fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
             if (err) throw err;
         });
+    }
+    hasUser(user_name){
+        var res = false
+        this.players.forEach(function (item) {
+            if(item.name === user_name)
+                res = true
+        })
+        return res
+    }
+
+    getUserSafeInfo(user_name){
+        var res = {}
+        this.players.forEach(function (item) {
+            if(item.name === user_name) {
+                res = {
+                    id:item.id
+                    ,name:item.name
+                    ,money:item.money
+                    ,picture:item.picture
+                }
+            }
+        })
+        return res
+    }
+
+    regUser(user_name, user_password, user_pic){
+        var max_id = 0
+        this.players.forEach(function (item) {
+            if (item.id > max_id)
+                max_id = item.id
+        })
+        let new_id = max_id + 1
+        let new_player = {
+            id: new_id,
+            name: user_name,
+            password: user_password,
+            money: beginner_money,
+            picture: user_pic
+        }
+        return new_player
     }
 }
 

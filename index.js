@@ -7,22 +7,16 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
 var fs = require('fs');
-
 var playersHolder = require('./files/playerbaseholder');
-var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs);
-
 var roomsHolder = require('./files/roomholder.js');
-var rooms = new roomsHolder.RoomHolder();
-//console.log(rooms.checkIfCanJoinRoom('room1'));
-//console.log(rooms.getAllRooms())
-
-
-
-
-
 var sock_holder = require('./files/socketholder.js')
+
+
+var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
+var rooms = new roomsHolder.RoomHolder()
 var socks = new sock_holder.SocketHolder()
 
+playersBaseHolder.loadPlayersFromBase()
 
 server.listen(port, () => {
     console.log("Listening to %d", port)
@@ -31,28 +25,23 @@ server.listen(port, () => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 var beginner_money = 200;
-
 /*var data = []
 for (let i=0; i < 5 ; i++){
     var obj = { id: i, name: 'Kirill', password: 'admin', money: 1000, picture: 1}
     data.push(obj);
 }
 */
-
-
-function onEnterLobby(player, lobby_name){
+/*function onEnterLobby(player, lobby_name){
     socks.addRoomToUser(player.name, lobby_name)
     rooms.addToRoom(player, lobby_name)
-}
+}*/
 
 function savePlayerMoney(player_name){
     let his_money = rooms.getPlayerMoney(player_name)
     playersBaseHolder.updatePlayerMoney(player_name, his_money)
-    player_name.save()
-    rooms.onPlayerLeave(player_name)
-    socks.userLeaveRoom(player_name, his_money)
+    playersBaseHolder.save()
+    socks.updateUserMoney(player_name, his_money)
 }
-
 
 
 io.sockets.on('connection', function (socket) {
@@ -60,118 +49,172 @@ io.sockets.on('connection', function (socket) {
 
         console.log("ID:", ID)
 
-        socket.on('authenticate', function (msg) {
-            var user = playersBaseHolder.authPlayer(msg.name, msg.password);
-
+        //data = { name: , password: }
+        socket.on('auth', function (data) {
+            var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user!=null) {
-                socket.emit('authentication', {flag: true, item: user});
-                socks.addUser(user)
+                socket.emit('auth', {flag: true, item: user});
+                socks.addUser(user.name)
             }else
-                socket.emit('authentication', {flag: false, item: {}})
+                socket.emit('auth', {flag: false, item: {}})
         })
 
+        //data = { name: , password: , picture: }
         socket.on('registration', function (data) {
-            var is_already_registered = false
-
-            playersBaseHolder.getPayers().forEach(function (item, i, array) {
-                if (item.name == data.name) {
-                    is_already_registered = true
-                    //если уже зареган, то посылаем отказ регистрации
-                    socket.emit('registration', {is_reg: is_already_registered, player: {}})
-                }
-            })
-            if (!is_already_registered) {
-                var max_id = 0
-                playersBaseHolder.getPayers().forEach(function (item, i, array) {
-                    if (item.id > max_id)
-                        max_id = item.id
-                })
-                let new_id = max_id + 1
-                let new_player = {
-                    id: new_id,
-                    name: data.name,
-                    password: data.password,
-                    money: beginner_money,
-                    picture: data.picture
-                }
+            if(playersBaseHolder.hasUser(data.name))
+                socket.emit('registration', {is_reg: true, player: {}})
+            else{
+                let new_user = playersBaseHolder.regUser(data.name, data.password, data.picture)
                 //console.log(new_player)
-                playersBaseHolder.addPlayer(new_player)
-                socket.emit('registration', {is_reg: is_already_registered, player: new_player})
-
-                socks.addUser(new_player)
+                playersBaseHolder.addPlayer(new_user)
+                socket.emit('registration', {is_reg: false, player: new_user})
+                socks.addUser(new_user)
             }
         })
 
-        socket.on('getlobbies', function (data) {
+
+        socket.on('getlobbies', function () {
             socket.emit('lobbies', rooms.getAllRooms())
         })
 
+        //data = { lobbyname: , name: }
         socket.on('enterlobby', (data) => {
-            if (rooms.checkIfCanJoinRoom(data.lobbyname)) {
-                onEnterLobby(data.player, data.lobbyname)
+            var user = playersBaseHolder.getUserSafeInfo(data.name);
+            var lobby_to = data.lobbyname
+            if (rooms.checkIfCanJoinRoom(lobby_to) && user!=null) {
+                if (rooms.checkIfCanJoinRoom(lobby_to)){
+                    socks.addRoomToUser(user.name, lobby_to)
+                    rooms.addToRoom(user.name, lobby_to)
 
-                socket.join(data.lobbyname)
+                    socket.join(lobby_to)
 
-                console.log("new player joined ", rooms.getRoom(data.lobbyname))
-                socket.emit('enteredlobby', true)
+                    console.log("new player joined ", lobby_to)
+                    socket.emit('enteredlobby', {didenter:true, lobbyinfo:rooms.getFullRommParams(lobby_to)})
 
-                let info_to_others = {
-                    id: data.player.id,
-                    name: data.player.name,
-                    money: data.player.money,
-                    picture: data.player.picture
+
+                    socket.broadcast.to(lobby_to).emit('newplayerjoinedlobby', user)
+                    if (rooms.checkIfGameCanStart(lobby_to)) {
+                        socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                        socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    }
                 }
-                socket.broadcast.to(data.lobbyname).emit('newplayerjoinedlobby', info_to_others)
-                if (rooms.checkIfGameStart(data.lobbyname)) {
-                    socket.broadcast.to(data.lobbyname).emit('gamestarts', {players:rooms.getRoomNoPsw(data.lobbyname), lead:rooms.getRoomLead(data.lobbyname)})
-                    socks.sendToRoomCards(data.lobbyname, rooms.getCardsAfterGameStart(data.lobbyname))
-                }
-            }else{
-                socket.emit('enteredlobby', false)
-            }
+            }else
+                socket.emit('enteredlobby', {didenter:false, lobbyinfo: {}})
         })
 
         //data = {lobbyname: , name:}
+        //TODO: сделать проверочку на конец игры в игровых листенерах
         socket.on('leavelobby', (data) => {
-            socket.broadcast.to(data.lobbyname).emit('playerleft', data.name)
-            socket.emit('youleft', {money: rooms.getPlayerMoney(data.name)})
-            savePlayerMoney(data.name)
-            console.log("Player left", data.lobbyname, data.name)
-            /////
-        })
-
-        socket.on('check', (data)=>{
-            if (this.rooms.onCheck(data.name)) {
-                savePlayerMoney(data.name)
-                socket.broadcast.to(data.lobbyname).emit('playercheck', data.name)
-                socket.emit('youcheck', true)
-            }else{
-                socket.emit('youcheck', false)
+            let user_n = data.name
+            let lobby_to = data.lobbyname
+            savePlayerMoney(user_n)
+            socket.broadcast.to(lobby_to).emit('playerleft', {name:user_n, newlead:rooms.getRoomLead(lobby_to)} )
+            socket.emit('youleft', {money: rooms.getPlayerMoney(user_n)})
+            console.log("Player left", lobby_to, user_n)
+            rooms.onPlayerLeave(user_n)
+            if(rooms.checkGameEnd(lobby_to)){
+                socket.broadcast.to(lobby_to).emit('endgame', rooms.getWinners(lobby_to))
+            }
+            if (rooms.checkIfGameCanStart(lobby_to)) {
+                socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
             }
         })
+        //data = { name: , power: }
+        socket.on('myhandpower',(data) => {
+            rooms.initPlayerHand(data.name, data.power)
+        })
 
+        //data = { name: , lobbyname: }
+        socket.on('check', (data)=>{
+            if (rooms.onCheck(data.name)) {
+                savePlayerMoney(data.name)
+                socket.broadcast.to(data.lobbyname).emit('playercheck', {name:data.name, newlead:rooms.getRoomLead(lobby_to)} )
+                socket.emit('youcheck', {flag:true, newlead:rooms.getRoomLead(lobby_to)})
+
+                if(rooms.checkGameEnd(lobby_to)){
+                    socket.broadcast.to(lobby_to).emit('endgame', rooms.getWinners(lobby_to))
+                    let playersInFinishedGame = rooms.getRoomPlayersForSave(data.lobbyname)
+                    for(let i=0; i<playersInFinishedGame.length; i++)
+                        savePlayerMoney(playersInFinishedGame[i].name)
+                }
+                if (rooms.checkIfGameCanStart(lobby_to)) {
+                    socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                }
+            }else{
+                socket.emit('youcheck', {flag:false, newlead: {}})
+            }
+        })
+        //data = { name: , lobbyname: }
        socket.on('fold', (data)=>{
-           if(this.rooms.onFold(data.name)) {
+           if(rooms.onFold(data.name)) {
                savePlayerMoney(data.name)
-               socket.broadcast.to(data.lobbyname).emit('playerfold', data.name)
-               socket.emit('youcfold', true)
-           }else{
-               socket.emit('youfold', false)
-           }
-       })
+               socket.broadcast.to(data.lobbyname).emit('playerfold',  {name:data.name, newlead:rooms.getRoomLead(lobby_to)})
+               socket.emit('youcfold', {flag:true, newlead:rooms.getRoomLead(lobby_to)})
 
-       socket.on('raise', (data)=>{
-           if(this.rooms.onRaise(data.name, data.rate)) {
-               savePlayerMoney(data.name)
-               socket.broadcast.to(data.lobbyname).emit('playerraise', {name:data.name, rate:data.rate})
-               socket.emit('youraise', true)
+               if(rooms.checkGameEnd(lobby_to)){
+                   socket.broadcast.to(lobby_to).emit('endgame', rooms.getWinners(lobby_to))
+                   let playersInFinishedGame = rooms.getRoomPlayersForSave(data.lobbyname)
+                   for(let i=0; i<playersInFinishedGame.length; i++)
+                       savePlayerMoney(playersInFinishedGame[i].name)
+               }
+               if (rooms.checkIfGameCanStart(lobby_to)) {
+                   socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                   socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+               }
+
            }else{
-               socket.emit('youraise', false)
+               socket.emit('youfold', {flag:false, newlead: {}})
            }
        })
+        //data = { name: , lobbyname: , rate: }
+       socket.on('raise', (data)=>{
+           if(rooms.onRaise(data.name, data.rate)) {
+               savePlayerMoney(data.name)
+               socket.broadcast.to(data.lobbyname).emit('playerraise', {name:data.name, newlead:rooms.getRoomLead(lobby_to)})
+               socket.emit('youraise', {flag:true, newlead:rooms.getRoomLead(lobby_to)})
+
+               if(rooms.checkGameEnd(lobby_to)){
+                   socket.broadcast.to(lobby_to).emit('endgame', rooms.getWinners(lobby_to))
+                   let playersInFinishedGame = rooms.getRoomPlayersForSave(data.lobbyname)
+                   for(let i=0; i<playersInFinishedGame.length; i++)
+                       savePlayerMoney(playersInFinishedGame[i].name)
+               }
+               if (rooms.checkIfGameCanStart(lobby_to)) {
+                   socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                   socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+               }
+           }else{
+               socket.emit('youraise', {flag:false, newlead: {}})
+           }
+       })
+        //data = { lobbyname: , name: }
+        socket.on('allin', (data) => {
+            if(this.rooms.onAllIn(data.name)) {
+                savePlayerMoney(data.name)
+                socket.broadcast.to(data.lobbyname).emit('playerallin',  {name:data.name, newlead:rooms.getRoomLead(lobby_to)})
+                socket.emit('youallin', {flag:true, newlead:rooms.getRoomLead(lobby_to)})
+
+                rooms.onRaise(data.name, data.rate)
+
+                if(rooms.checkGameEnd(lobby_to)){
+                    socket.broadcast.to(lobby_to).emit('endgame', rooms.getWinners(lobby_to))
+                    let playersInFinishedGame = rooms.getRoomPlayersForSave(data.lobbyname)
+                    for(let i=0; i<playersInFinishedGame.length; i++)
+                        savePlayerMoney(playersInFinishedGame[i].name)
+                }
+                if (rooms.checkIfGameCanStart(lobby_to)) {
+                    socket.broadcast.to(lobby_to).emit('gamestarts', {players:rooms.getFullRommParams(lobby_to), lead:rooms.getRoomLead(lobby_to)})
+                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                }
+            }else{
+                socket.emit('youallin', {flag:false, newlead: {}})
+            }
+        })
 
         socket.on('yess', (msg) => {
             console.log("Got from client:",msg);
         })
-    })
+})
 
