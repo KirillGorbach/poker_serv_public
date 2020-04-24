@@ -9,10 +9,12 @@ class SocketHolder{
         this.sockids = []
     }
 
-    userLeaveRoom(player_name){
+    userLeaveRoom(player_name, player_money){
         this.sockids.forEach(function (item) {
-            if (item.name == player_name)
+            if (item.name == player_name){
                 item.room = ""
+                item.player.money = player_money
+            }
         })
     }
 

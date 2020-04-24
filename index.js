@@ -17,14 +17,7 @@ var rooms = new roomsHolder.RoomHolder();
 //console.log(rooms.getAllRooms())
 
 
-var testGame = require('./files/gameholder.js');
-var gameHolder = new testGame.GameHolder([ { id:0, name:'Kirill', password:'admin', money:1000, picture:1 },{ id:1, name:'Kirill', password:'admin', money:1000, picture:1 }]);
-gameHolder.start();
-console.log(gameHolder.getCardsOnTable());
-console.log(gameHolder.getPlayerCards('Kirill'));
-console.log(gameHolder.lead);
-gameHolder.changeLead()
-console.log(gameHolder.lead);
+
 
 
 var sock_holder = require('./files/socketholder.js')
@@ -47,9 +40,24 @@ for (let i=0; i < 5 ; i++){
 */
 
 
+function onEnterLobby(player, lobby_name){
+    socks.addRoomToUser(player.name, lobby_name)
+    rooms.addToRoom(player, lobby_name)
+}
+
+function savePlayerMoney(player_name){
+    let his_money = rooms.getPlayerMoney(player_name)
+    playersBaseHolder.updatePlayerMoney(player_name, his_money)
+    player_name.save()
+    rooms.onPlayerLeave(player_name)
+    socks.userLeaveRoom(player_name, his_money)
+}
+
+
 
 io.sockets.on('connection', function (socket) {
         var ID = (socket.id).toString()
+
         console.log("ID:", ID)
 
         socket.on('authenticate', function (msg) {
@@ -100,10 +108,9 @@ io.sockets.on('connection', function (socket) {
 
         socket.on('enterlobby', (data) => {
             if (rooms.checkIfCanJoinRoom(data.lobbyname)) {
-                rooms.addToRoom(data.lobbyname, data.player)
+                onEnterLobby(data.player, data.lobbyname)
 
                 socket.join(data.lobbyname)
-                socks.addRoomToUser(data.player.name, data.lobbyname)
 
                 console.log("new player joined ", rooms.getRoom(data.lobbyname))
                 socket.emit('enteredlobby', true)
@@ -115,8 +122,10 @@ io.sockets.on('connection', function (socket) {
                     picture: data.player.picture
                 }
                 socket.broadcast.to(data.lobbyname).emit('newplayerjoinedlobby', info_to_others)
-                if (rooms.checkIfGameStart(data.lobbyname))
+                if (rooms.checkIfGameStart(data.lobbyname)) {
+                    socket.broadcast.to(data.lobbyname).emit('gamestarts', {players:rooms.getRoomNoPsw(data.lobbyname), lead:rooms.getRoomLead(data.lobbyname)})
                     socks.sendToRoomCards(data.lobbyname, rooms.getCardsAfterGameStart(data.lobbyname))
+                }
             }else{
                 socket.emit('enteredlobby', false)
             }
@@ -125,15 +134,41 @@ io.sockets.on('connection', function (socket) {
         //data = {lobbyname: , name:}
         socket.on('leavelobby', (data) => {
             socket.broadcast.to(data.lobbyname).emit('playerleft', data.name)
-            socket.emit('youleavedlobby', {money: rooms.getPlayerMoney(data.name)})
-            playersBaseHolder.updatePlayerMoney(data.name, rooms.getPlayerMoney(data.name))
-            rooms.onPlayerLeave(data.name)
-            socks.userLeaveRoom(data.name)
+            socket.emit('youleft', {money: rooms.getPlayerMoney(data.name)})
+            savePlayerMoney(data.name)
             console.log("Player left", data.lobbyname, data.name)
             /////
         })
 
-        socket.on('')
+        socket.on('check', (data)=>{
+            if (this.rooms.onCheck(data.name)) {
+                savePlayerMoney(data.name)
+                socket.broadcast.to(data.lobbyname).emit('playercheck', data.name)
+                socket.emit('youcheck', true)
+            }else{
+                socket.emit('youcheck', false)
+            }
+        })
+
+       socket.on('fold', (data)=>{
+           if(this.rooms.onFold(data.name)) {
+               savePlayerMoney(data.name)
+               socket.broadcast.to(data.lobbyname).emit('playerfold', data.name)
+               socket.emit('youcfold', true)
+           }else{
+               socket.emit('youfold', false)
+           }
+       })
+
+       socket.on('raise', (data)=>{
+           if(this.rooms.onRaise(data.name, data.rate)) {
+               savePlayerMoney(data.name)
+               socket.broadcast.to(data.lobbyname).emit('playerraise', {name:data.name, rate:data.rate})
+               socket.emit('youraise', true)
+           }else{
+               socket.emit('youraise', false)
+           }
+       })
 
         socket.on('yess', (msg) => {
             console.log("Got from client:",msg);
