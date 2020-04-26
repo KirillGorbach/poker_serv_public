@@ -7,9 +7,9 @@ var socks = new sock_holder.SocketHolder()
 var fs = require('fs')
 var playersHolder = require('./files/playerbaseholder');
 var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
-
+var gameHolder = new testGame.GameHolder();
 //testPlayerBaseHolder()
-testRoomHolder()
+//testRoomHolder()
 //testRoom()
 //testGH()
 
@@ -24,7 +24,6 @@ function testPlayerBaseHolder() {
     console.log(playersBaseHolder.getPayers())
     //console.log(playersBaseHolder.getPayers())
 }
-
 function testRoom() {
     const actions = {
         check: "check"
@@ -167,11 +166,11 @@ function testRoomHolder() {
 
 
     console.log(rHolder.getAllRooms())
-    console.log(rHolder.getFullRommParams(nameRoom1))
+    console.log(rHolder.getFullRoomParams(nameRoom1))
 
     if(rHolder.checkIfGameCanStart(nameRoom1)){
         rHolder.startGame(nameRoom1)
-        console.log(rHolder.getFullRommParams(nameRoom1))
+        console.log(rHolder.getFullRoomParams(nameRoom1))
         console.log(rHolder.getCardsAfterGameStart(nameRoom1))
         rHolder.initPlayerHand('Kirill0', 400013131222)
         rHolder.initPlayerHand('Kirill1', 511212000000)
@@ -228,9 +227,9 @@ function testGH() {
     let gh_players = [
         {name:'Kirill0', money:100},
         {name:'Kirill1', money:100},
-        {name:'Kirill2', money:100},
-        {name:'Kirill3', money:100},
-        {name:'Kirill4', money:100}
+        //{name:'Kirill2', money:100},
+        //{name:'Kirill3', money:100},
+        //{name:'Kirill4', money:100}
     ]
     const actions = {
         check: "check"
@@ -239,7 +238,11 @@ function testGH() {
         ,allin:"all in"
         ,leave:"leave"
     }
-    var gameHolder = new testGame.GameHolder(gh_players);
+
+    gameHolder.setPlayers(gh_players)
+
+    gameHolder.initPlayerHandPower('Kirill0', 10000)
+    gameHolder.initPlayerHandPower('Kirill1', 20000)
 
     if(gameHolder.checkIfCanStart()) gameHolder.start()
     //console.log(gameHolder.getCardsAfterStart())
@@ -252,15 +255,26 @@ function testGH() {
     console.log("Game: bank", gameHolder.bank, "rate", gameHolder.rate, "leading player", gameHolder.getLead())
     console.log("Order in what players act\n", gameHolder.ticker.getPlayerOrder())
 
-    testGHPlayerActs(gameHolder, actions.check)
-    testGHPlayerActs(gameHolder, actions.raise, gameHolder.rate+10)
-    testGHPlayerActs(gameHolder, actions.leave, 0, gameHolder.getLead())
-    testGHPlayerActs(gameHolder, actions.check)
-    testGHPlayerActs(gameHolder, actions.fold)
-    testGHPlayerActs(gameHolder, actions.check)
-    testGHPlayerActs(gameHolder, actions.fold)
     testGHPlayerActs(gameHolder, actions.allin)
     testGHPlayerActs(gameHolder, actions.allin)
+    if(gameHolder.checkIfCanStart()){
+        console.log("STARTING AGAIN!")
+        gameHolder.start()
+        gameHolder.initPlayerHandPower('Kirill0', 20000)
+        gameHolder.initPlayerHandPower('Kirill1', 10000)
+        testGHPlayerActs(gameHolder, actions.allin)
+        testGHPlayerActs(gameHolder, actions.allin)
+    }
+
+    //testGHPlayerActs(gameHolder, actions.check)
+    //testGHPlayerActs(gameHolder, actions.raise, gameHolder.rate+10)
+    //testGHPlayerActs(gameHolder, actions.leave, 0, gameHolder.getLead())
+    //testGHPlayerActs(gameHolder, actions.check)
+    //testGHPlayerActs(gameHolder, actions.fold)
+    //testGHPlayerActs(gameHolder, actions.check)
+    //testGHPlayerActs(gameHolder, actions.fold)
+    //testGHPlayerActs(gameHolder, actions.allin)
+    //testGHPlayerActs(gameHolder, actions.allin)
 
     /*console.log("\n\nRaise", gameHolder.getLead(), gameHolder.rate + 10)
     while (gameHolder.players_in_game.length > 3) {
@@ -290,8 +304,8 @@ function testGH() {
     console.log("leader fold", gameHolder.getLead())
     if(!gameHolder.onFold(gameHolder.getLead())) console.log("GAME OVER!!!!!")
     console.log(gameHolder.players_in_game)
-    console.log(gameHolder.ticker.players)*/
-    /*console.log("Raise",gameHolder.getLead(), gameHolder.rate+10)
+    console.log(gameHolder.ticker.players)
+    console.log("Raise",gameHolder.getLead(), gameHolder.rate+10)
     gameHolder.onRaise(gameHolder.getLead(), gameHolder.rate+10)
     console.log(gameHolder.players_in_game)
     console.log("bank", gameHolder.bank, "rate", gameHolder.rate, "lead", gameHolder.getLead())
@@ -311,19 +325,19 @@ function testGHPlayerActs(gameHolder, action, val=null, name=null) {
     switch (action) {
         case "all in":
             console.log("leader all in", gameHolder.getLead())
-            if(!gameHolder.onAllIn(gameHolder.getLead())) console.log("GAME OVER!!!!!")
+            if(!gameHolder.onAllIn(gameHolder.getLead())) console.log("Smth wrong allin")
             break
         case "check":
             console.log("leader check", gameHolder.getLead())
-            if(!gameHolder.onCheck(gameHolder.getLead())) console.log("GAME OVER!!!!!")
+            if(!gameHolder.onCheck(gameHolder.getLead())) console.log("Smth wrong check")
             break
         case "raise":
             console.log("leader raises", gameHolder.getLead(), "val", val)
-            if(!gameHolder.onRaise(gameHolder.getLead(), val)) console.log("GAME OVER!!!!!")
+            if(!gameHolder.onRaise(gameHolder.getLead(), val)) console.log("Smth wrong raise")
             break
         case "fold":
             console.log("leader fold", gameHolder.getLead())
-            if(!gameHolder.onFold(gameHolder.getLead())) console.log("GAME OVER!!!!!")
+            if(!gameHolder.onFold(gameHolder.getLead())) console.log("Smth wrong fold")
             break
         case "leave":
             console.log("who leaves", name)
@@ -332,6 +346,11 @@ function testGHPlayerActs(gameHolder, action, val=null, name=null) {
     }
     console.log("players in game:\n",gameHolder.players_in_game)
     console.log("players in ticker:\n",gameHolder.ticker.players)
+    if(gameHolder.isFinished){
+        console.log("GAME OVER!!!!!")
+        console.log(gameHolder.getWinners())
+        console.log(gameHolder.players)
+    }
 
 }
 

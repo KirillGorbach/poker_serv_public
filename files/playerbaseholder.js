@@ -1,4 +1,4 @@
-'use strict';
+    'use strict';
 var fs = require('fs');
 
 class PlayersBaseHolder{
@@ -7,13 +7,16 @@ class PlayersBaseHolder{
         this.players = [];
         this.name = "";
         this.loadPlayersFromBase();
+        this.beginner_money = 100
     }
 
+    //TODO: после тестов убрать this.save() везде
     updatePlayerMoney(player_name, new_money){
         this.players.forEach(function (item) {
             if(item.name === player_name)
                 item.money = new_money
         })
+        //this.save()
     }
 
     loadPlayersFromBase(){
@@ -26,11 +29,12 @@ class PlayersBaseHolder{
 
     addPlayer(player){
         this.players.push(player);
+        //this.save()
     }
 
     authPlayer(player_name, player_password){
         var res = null
-        this.players.forEach(function (item, i, array) {
+        this.players.forEach(function (item) {
             //console.log("item name & msg.name:", item.name, msg.name);
             if (player_name === item.name && player_password === item.password)
                 res = item
@@ -47,7 +51,7 @@ class PlayersBaseHolder{
     }
 
     setBaseFile(dt) {
-        console.log("dt:",JSON.stringify({"players": dt} ))
+        //console.log("dt:",JSON.stringify({"players": dt} ))
         fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
             if (err) throw err;
         });
@@ -62,7 +66,7 @@ class PlayersBaseHolder{
     }
 
     getUserSafeInfo(user_name){
-        var res = {}
+        var res = null
         this.players.forEach(function (item) {
             if(item.name === user_name) {
                 res = {
@@ -83,14 +87,15 @@ class PlayersBaseHolder{
                 max_id = item.id
         })
         let new_id = max_id + 1
-        let new_player = {
+        let new_user = {
             id: new_id,
             name: user_name,
             password: user_password,
-            money: beginner_money,
+            money: this.beginner_money,
             picture: user_pic
         }
-        return new_player
+        this.addPlayer(new_user)
+        return new_user
     }
 }
 

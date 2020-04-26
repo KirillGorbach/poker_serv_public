@@ -1,5 +1,5 @@
 class GameHolder{
-    constructor(players) {
+    /*constructor(players) {
         this.bank = 0
         this.rate = 20
         this.players = players
@@ -10,14 +10,36 @@ class GameHolder{
         this.ticker = new Ticker()
         this.isFinished = false
         this.players_hands = []
+    }*/
+
+    constructor() {
+        this.bank = 0
+        this.base_rate = 20
+        this.rate = this.base_rate
+        this.players = []
+        this.players_in_game = []
+        this.isRunning = false
+        this.cards_on_table = []
+        this.players_cards = []
+        this.ticker = new Ticker()
+        this.isFinished = false
+        this.players_hands = []
     }
 
+    setRate(val){ this.base_rate = val }
+
+    setPlayers(plas){ this.players = plas }
+
     start(){
+        this.rate = this.base_rate
         this.bank = 0
         this.isRunning = true
-        this.isFinishing = false
-        for (let i=0; i<this.players.length; i++)
+        this.isFinished = false
+        this.players_in_game = []
+        for (let i=0; i<this.players.length; i++) {
+            this.players[i].power = -1
             this.players_in_game.push(this.players[i])
+        }
 
         this.ticker.reset()
         this.ticker.setPlayers(this.players_in_game)
@@ -27,7 +49,7 @@ class GameHolder{
         var deck_made = [];
         while(deck_made.length < number_of_cards_need){
             let new_card = this.getRandomCard(deck);
-            if(deck_made.indexOf(new_card) == -1){
+            if(deck_made.indexOf(new_card) === -1){
                 deck_made.push(new_card);
             }
         }
@@ -36,6 +58,9 @@ class GameHolder{
 
         for (let i=0; i<this.players_in_game.length; i++)
             this.players_cards.push({ playername: this.players_in_game[i].name, cards: [ deck_made[5+2*i], deck_made[5+2*i+1] ] });
+        //console.log("starting: players_in_game:",this.players_in_game)
+        //console.log("starting: players:",this.players)
+        //console.log("players cards", this.players_cards)
     }
 
     decreasePlayerMoney(player_name, val){
@@ -84,7 +109,7 @@ class GameHolder{
                 //console.log(this.ticker.players)
                 if(this.ticker.tickIfEnd()){
                     this.endProcedure()
-                    return false
+                    return true
                 }else {
                     this.checkPlayerHasMoney(player_name)
                     if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
@@ -99,12 +124,13 @@ class GameHolder{
     onCheck(player_name){
         if(this.isRunning) {
             if (player_name === this.ticker.getLeadPlayer()) {
+                //console.log("if I am here, it is not so bad")
                 this.decreasePlayerMoney(player_name, this.rate)
                 this.bank += this.rate
-                if(this.players[this.getPlayerIndexInGame(player_name)].money === 0) this.ticker.setReadyToFinish(player_name)
+                if(this.players_in_game[this.getPlayerIndexInGame(player_name)].money === 0) this.ticker.setReadyToFinish(player_name)
                 if (this.ticker.tickIfEnd()){
                     this.endProcedure()
-                    return false
+                    return true
                 }else {
                     if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
                     return this.checkPlayerMoneyRight(player_name)
@@ -123,7 +149,7 @@ class GameHolder{
                 if (index != null) this.players_in_game.splice(index, 1)
                 if (this.ticker.tickIfEnd(true)) {
                     this.endProcedure()
-                    return false
+                    return true
                 }else {
                     if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
                     return this.checkPlayerMoneyRight(player_name)
@@ -138,17 +164,16 @@ class GameHolder{
         if(this.isRunning) {
             if(new_val != null && !isNaN(new_val)) this.rate = new_val
             else console.log("ACHTUNG! None or null new val in raise player", player_name)
-
             var index = this.getPlayerIndexInGame(player_name)
             if (index != null) {
                 if(this.checkPlayerHasMoney(player_name)) {
                     this.decreasePlayerMoney(player_name, this.rate)
                     this.bank += this.rate
-                    if(this.players[this.getPlayerIndexInGame(player_name)].money === 0) this.ticker.setReadyToFinish(player_name)
+                    if(this.players_in_game[this.getPlayerIndexInGame(player_name)].money === 0){ this.ticker.setReadyToFinish(player_name) }
                 }
                 if (this.ticker.tickIfEnd()) {
                     this.endProcedure()
-                    return false
+                    return true
                 }else {
                     if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
                     return this.checkPlayerMoneyRight(player_name)
@@ -165,19 +190,16 @@ class GameHolder{
         //console.log("running?", this.isRunning, "in game?", this.hasPlayerInGame(player_name), "name?",player_name)
         if(this.isRunning && this.hasPlayerInGame(player_name)) {
             //console.log("asd")
-            let res = false
             if(this.ticker.onPlayerLeft(player_name)){
                 this.endProcedure()
-                res = false
             }else {
                 if(this.ticker.wasNewRound()) this.deleteEmptyPlayers()
-                res = true
             }
             let index = this.getPlayerIndexInGame(player_name)
             if (index != null) this.players_in_game.splice(index, 1)
             let index1 = this.getPlayerIndexInAll(player_name)
             if (index1 != null) this.players.splice(index1, 1)
-            return res
+            return true
         }else{
             var index = this.getPlayerIndexInAll(player_name)
             if (index != null) this.players.splice(index, 1)
@@ -185,15 +207,15 @@ class GameHolder{
         }
     }
 
-    addPlayer(new_player){ this.players.push(new_player) }
+    addPlayer(new_player){ this.players.push(new_player)}
 
     getCardsOnTable(){ return this.cards_on_table }
 
     getPlayerCards(player_name){
         var res = null;
-        console.log(this.players_cards)
+        //console.log(this.players_cards)
         res = this.players_cards.filter(i => i.playername === player_name)
-        console.log(res)
+        //console.log(res)
         return res!==[]?res[0].cards:null
 
     }
@@ -278,10 +300,10 @@ class GameHolder{
             for(let i=0; i<this.players_in_game.length; i++){
                 this.players_in_game[i].power = this.getPowerInside(this.players_in_game[i].name)
             }
-            console.log(this.players_in_game)
+            //console.log(this.players_in_game)
             let maxPower = 0
             let winners = []
-            console.log(this.players_in_game.length)
+            //console.log(this.players_in_game.length)
             for(let i=0; i<this.players_in_game.length; i++) {
                 if(maxPower === this.players_in_game[i].power)
                     winners.push(this.players_in_game[i].name)
@@ -297,7 +319,7 @@ class GameHolder{
 
             for(let i=0; i<winners.length; i++)
                 this.increasePlayerMoney(winners[i], win_val)
-
+            //console.log("players", this.players)
 
             return {win_val:win_val, winners:winners}
         }

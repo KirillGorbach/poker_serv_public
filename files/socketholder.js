@@ -19,7 +19,7 @@ class SocketHolder{
     }
 
     addUser(sock_id, user_name){
-        this.sockids.push({sock_id: sock_id, name: user_namename})
+        this.sockids.push({sock_id: sock_id, name: user_name})
     }
 
     addUserWithRoom(sock_id, user_name, room){
