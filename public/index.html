@@ -3,8 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <title>ServTest</title>
+    <script>
+        function gl() {
+            var sock = io()
+
+        }
+    </script>
 </head>
 <body>
+<div id="regdiv">
+    <label for="nameinp">Name</label>
+    <input type="text" size="50" id="nameinp">
+</div>
+<div>
+    <label for="pswinp">Password</label>
+    <input type="text" size="50" id="pswinp">
+</div>
+<div>
+    <label for="picinp">Picture</label>
+    <input type="number" size="50" id="picinp">
+</div>
+
+<form>
+    <button id="regbtn">REG</button>
+    <button id="getlobbybtn" name="button">GET LOBBY</button>
+</form>
+<p id="server_responce"></p>
 
 <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
