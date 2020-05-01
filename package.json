@@ -5,6 +5,7 @@
   "license": "MIT",
   "description": "My first real serv",
   "scripts": {
+    "start": "node src/serv/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,5 +20,8 @@
     "socket.io-client": "^2.3.0",
     "thymeleaf": "^0.18.1",
     "xml2js": "^0.4.23"
+  },
+  "scripts": {
+    "start": "node index.js"
   }
 }
