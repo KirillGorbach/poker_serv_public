@@ -45,6 +45,7 @@ class PlayersBaseHolder{
                 console.log("database error! read")
                 throw err;
             }
+            console.log(val)
             for (let row in val.rows){
                 data = JSON.parse(row)
             }

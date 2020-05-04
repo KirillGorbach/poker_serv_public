@@ -14,6 +14,7 @@
   "author": "Kirill Gorbach <kirill.gorbach@gmail.com>",
   "dependencies": {
     "express": "^4.17.1",
+    "heroku": "^7.40.0",
     "http": "0.0.1-security",
     "pg": "^8.0.3",
     "socket.io": "^2.3.0",
