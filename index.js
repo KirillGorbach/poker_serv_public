@@ -1,5 +1,8 @@
 'use strict';
 
+var postgres = require('pg')
+postgres.connect
+
 var express = require('express');
 var app = express();
 var path = require('path');
@@ -51,6 +54,11 @@ io.sockets.on('connection', function (socket) {
 
         //data = { name: , password: }
         socket.on("auth", function (data) {
+            console.log(data, typeof data, typeof {name:'Kirill'})
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
+            console.log(data, typeof data)
             var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user!=null) {
                 socket.emit("auth", {flag: true, item: user});
@@ -61,6 +69,9 @@ io.sockets.on('connection', function (socket) {
 
         //data = { name: , password: , picture: }
         socket.on("registration", function (data) {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             if(playersBaseHolder.hasUser(data.name)) {
                 console.log("already registered", data.name)
                 socket.emit("registration", {is_reg: true, player: {}})
@@ -75,12 +86,18 @@ io.sockets.on('connection', function (socket) {
 
 
         socket.on("getlobbies", function (data) {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             console.log(rooms.getAllRooms())
             socket.emit("getlobbies", rooms.getAllRooms())
         })
 
         //data = { lobbyname: , name: }
         socket.on("enterlobby", (data) => {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             var user = playersBaseHolder.getUserSafeInfo(data.name);
             var lobby_to = data.lobbyname
             if (rooms.checkIfCanJoinRoom(lobby_to) && user!=null) {
@@ -110,6 +127,9 @@ io.sockets.on('connection', function (socket) {
         //data = {lobbyname: , name:}
         //TOD_O: сделать проверочку на конец игры в игровых листенерах
         socket.on("leavelobby", (data) => {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             let user_n = data.name
             let lobby_to = data.lobbyname
             savePlayerMoney(user_n)
@@ -130,12 +150,18 @@ io.sockets.on('connection', function (socket) {
         })
         //data = { name: , power: }
         socket.on("myhandpower",(data) => {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             //console.log("power:", data)
             rooms.initPlayerHand(data.name, data.power)
         })
 
         //data = { name: , lobbyname: }
         socket.on("check", (data)=>{
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             //console.log("check data:",data)
             var lobby_to = data.lobbyname
             if (rooms.onCheck(data.name)) {
@@ -162,6 +188,9 @@ io.sockets.on('connection', function (socket) {
         })
         //data = { name: , lobbyname: }
        socket.on("fold", (data)=>{
+           if (typeof data !== 'object') {
+               data = JSON.parse(data);
+           }
            var lobby_to = data.lobbyname
            if(rooms.onFold(data.name)) {
                savePlayerMoney(data.name)
@@ -185,6 +214,9 @@ io.sockets.on('connection', function (socket) {
        })
         //data = { name: , lobbyname: , rate: }
        socket.on("raise", (data)=>{
+           if (typeof data !== 'object') {
+               data = JSON.parse(data);
+           }
            var lobby_to = data.lobbyname
            if(rooms.onRaise(data.name, data.rate)) {
                savePlayerMoney(data.name)
@@ -211,6 +243,9 @@ io.sockets.on('connection', function (socket) {
        })
         //data = { lobbyname: , name: }
         socket.on('allin', (data) => {
+            if (typeof data !== 'object') {
+                data = JSON.parse(data);
+            }
             //console.log("in allin", data)
             var lobby_to = data.lobbyname
             if(rooms.onAllIn(data.name)) {
@@ -238,6 +273,9 @@ io.sockets.on('connection', function (socket) {
         })
 
         socket.on("yess", (msg) => {
+            if (typeof data !== 'object') {
+                msg = JSON.parse(msg);
+            }
             console.log("Got from client:",msg);
             socket.emit("yess", msg)
         })
