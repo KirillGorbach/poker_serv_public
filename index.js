@@ -48,6 +48,7 @@ function savePlayerMoney(player_name){
 io.sockets.on('connection', function (socket) {
         var ID = (socket.id).toString()
         var id = socket.name
+    console.log("connected")
         //console.log(id)
         //console.log("ID:", ID)
 

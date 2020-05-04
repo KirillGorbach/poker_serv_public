@@ -20,8 +20,12 @@ class PlayersBaseHolder{
 
     checkDBTable(){
         baseclient.query('create table if not exists u (dt jsonb);', (err, res) => {
-            if (err) throw err;
+            if (err){
+                console.log("database error! init")
+                throw err;
+            }
         })
+        console.log("successfully init table")
     }
 
     updatePlayerMoney(player_name, new_money){
@@ -35,16 +39,20 @@ class PlayersBaseHolder{
     loadPlayersFromBase(){
         this.players = []
         //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
-        var data
+        var data = {}
         baseclient.query('select dt from u;', (err, val)=>{
-            if (err) throw err;
+            if (err){
+                console.log("database error! read")
+                throw err;
+            }
             for (let row in val.rows){
                 data = JSON.parse(row)
             }
         })
-        var words = JSON.parse(data);
+        var words = data //JSON.parse(data);
         for (let i=0; i<words.players.length; i++)
             this.players.push(words.players[i]);
+        console.log("successfully read table")
     }
 
     addPlayer(player){
@@ -72,8 +80,12 @@ class PlayersBaseHolder{
 
     setBaseFile(dt) {
         baseclient.query('update u set d = '+dt, (err, res)=>{
-            if (err) throw err;
+            if (err){
+                console.log("database error! save")
+                throw err;
+            }
         })
+        console.log("successfully save table")
         //console.log("dt:",JSON.stringify({"players": dt} ))
         //fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
         //    if (err) throw err;
