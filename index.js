@@ -1,7 +1,6 @@
 'use strict';
 
-var postgres = require('pg')
-postgres.connect
+
 
 var express = require('express');
 var app = express();
@@ -279,5 +278,9 @@ io.sockets.on('connection', function (socket) {
             console.log("Got from client:",msg);
             socket.emit("yess", msg)
         })
+    socket.on("testdb", () => {
+        console.log("all players:", playersBaseHolder.players);
+        socket.emit("testdb", playersBaseHolder.players)
+    })
 })
 

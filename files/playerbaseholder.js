@@ -1,5 +1,11 @@
     'use strict';
 var fs = require('fs');
+var postgres = require('pg')
+var baseclient = new postgres.Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true
+})
+
 
 class PlayersBaseHolder{
     constructor() {
@@ -8,20 +14,34 @@ class PlayersBaseHolder{
         this.name = "";
         this.loadPlayersFromBase();
         this.beginner_money = 100
+        baseclient.connect()
+        this.checkDBTable()
     }
 
-    //TODO: после тестов убрать this.save() везде
+    checkDBTable(){
+        baseclient.query('create table if not exists u (dt jsonb);', (err, res) => {
+            if (err) throw err;
+        })
+    }
+
     updatePlayerMoney(player_name, new_money){
         this.players.forEach(function (item) {
             if(item.name === player_name)
                 item.money = new_money
         })
-        //this.save()
+        this.save()
     }
 
     loadPlayersFromBase(){
         this.players = []
-        var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
+        //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
+        var data
+        baseclient.query('select dt from u;', (err, val)=>{
+            if (err) throw err;
+            for (let row in val.rows){
+                data = JSON.parse(row)
+            }
+        })
         var words = JSON.parse(data);
         for (let i=0; i<words.players.length; i++)
             this.players.push(words.players[i]);
@@ -29,7 +49,7 @@ class PlayersBaseHolder{
 
     addPlayer(player){
         this.players.push(player);
-        //this.save()
+        this.save()
     }
 
     authPlayer(player_name, player_password){
@@ -51,10 +71,13 @@ class PlayersBaseHolder{
     }
 
     setBaseFile(dt) {
-        //console.log("dt:",JSON.stringify({"players": dt} ))
-        fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
+        baseclient.query('update u set d = '+dt, (err, res)=>{
             if (err) throw err;
-        });
+        })
+        //console.log("dt:",JSON.stringify({"players": dt} ))
+        //fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
+        //    if (err) throw err;
+        //});
     }
     hasUser(user_name){
         var res = false
