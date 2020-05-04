@@ -40,12 +40,14 @@ class PlayersBaseHolder{
         this.players = []
         //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
         var data = {}
+        let flag = false
         baseclient.query('select dt from u;', (err, val)=>{
             if (err){
                 console.log("database error! read")
                 throw err;
             }
-            console.log(val)
+            console.log("val:", val, typeof val)
+            //if(val!=null)
             for (let row in val.rows){
                 data = JSON.parse(row)
             }
