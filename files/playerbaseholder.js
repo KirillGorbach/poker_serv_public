@@ -2,7 +2,7 @@
 var fs = require('fs');
 var postgres = require('pg')
 var baseclient = new postgres.Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: "postgres:thenrgqrwnmzyo:8cbf13047db22f5e22913820e00274b73663b96bcd921da0647399eab338302e@ec2-34-195-169-25.compute-1.amazonaws.com:5432/db7g5320v7frvi",
     ssl: true
 })
 
