@@ -47,10 +47,10 @@ class PlayersBaseHolder{
                 throw err;
             }
             console.log("val:", val, typeof val)
-            //if(val!=null)
-            for (let row in val.rows){
-                data = JSON.parse(row)
-            }
+            ////if(val!=null)
+            //for (let row in val.rows){
+            //    data = JSON.parse(row)
+            //}
         })
         var words = data //JSON.parse(data);
         for (let i=0; i<words.players.length; i++)
