@@ -53,8 +53,8 @@ class PlayersBaseHolder{
             //}
         })
         var words = data //JSON.parse(data);
-        for (let i=0; i<words.players.length; i++)
-            this.players.push(words.players[i]);
+        //for (let i=0; i<words.players.length; i++)
+        //    this.players.push(words.players[i]);
         console.log("successfully read table")
     }
 
