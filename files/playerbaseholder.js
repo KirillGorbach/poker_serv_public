@@ -2,7 +2,7 @@
 var fs = require('fs');
 var postgres = require('pg')
 var baseclient = new postgres.Client({
-    connectionString: "postgres:thenrgqrwnmzyo:8cbf13047db22f5e22913820e00274b73663b96bcd921da0647399eab338302e@ec2-34-195-169-25.compute-1.amazonaws.com:5432/db7g5320v7frvi",
+    connectionString: "postgres://thenrgqrwnmzyo:8cbf13047db22f5e22913820e00274b73663b96bcd921da0647399eab338302e@ec2-34-195-169-25.compute-1.amazonaws.com:5432/db7g5320v7frvi",
     ssl: true
 })
 
@@ -43,18 +43,22 @@ class PlayersBaseHolder{
         let flag = false
         baseclient.query('select dt from u;', (err, val)=>{
             if (err){
-                console.log("database error! read")
+                console.log("database error! read", typeof val)
                 throw err;
             }
             console.log("val:", val, typeof val)
-            ////if(val!=null)
-            //for (let row in val.rows){
-            //    data = JSON.parse(row)
-            //}
+            if(val!=null) {
+                flag = true
+                for (let row in val.rows) {
+                    data = JSON.parse(row)
+                }
+            }
         })
-        var words = data //JSON.parse(data);
-        //for (let i=0; i<words.players.length; i++)
-        //    this.players.push(words.players[i]);
+        if (flag) {
+            var words = data //JSON.parse(data);
+            for (let i=0; i<words.players.length; i++)
+                this.players.push(words.players[i]);
+        }
         console.log("successfully read table")
     }
 
