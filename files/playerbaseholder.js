@@ -14,8 +14,8 @@ class PlayersBaseHolder{
         this.name = "";
         this.loadPlayersFromBase();
         this.beginner_money = 100
-        baseclient.connect()
-        this.checkDBTable()
+        //baseclient.connect()
+        //this.checkDBTable()
     }
 
     checkDBTable(){
@@ -38,22 +38,23 @@ class PlayersBaseHolder{
 
     loadPlayersFromBase(){
         this.players = []
-        //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8');
-        var data = {}
-        let flag = false
-        baseclient.query('select dt from u;', (err, val)=>{
-            if (err){
-                console.log("database error! read", typeof val)
-                throw err;
-            }
-            console.log("val:", val, typeof val)
-            if(val!=null) {
-                flag = true
-                for (let row in val.rows) {
-                    data = JSON.parse(row)
-                }
-            }
-        })
+        var data = fs.readFileSync(__dirname+'/players.json', 'utf-8')
+        data = JSON.parse(data)
+        let flag = true//false
+        //var data = {}
+        //baseclient.query('select dt from u;', (err, val)=>{
+        //    if (err){
+        //        console.log("database error! read", typeof val)
+        //        throw err;
+        //    }
+        //    console.log("val:", val, typeof val)
+        //    if(val!==undefined) {
+        //        flag = true
+        //        for (let row in val.rows) {
+        //            data = JSON.parse(row)
+        //        }
+        //    }
+        //})
         if (flag) {
             var words = data //JSON.parse(data);
             for (let i=0; i<words.players.length; i++)
@@ -86,17 +87,17 @@ class PlayersBaseHolder{
     }
 
     setBaseFile(dt) {
-        baseclient.query('update u set d = '+dt, (err, res)=>{
-            if (err){
-                console.log("database error! save")
-                throw err;
-            }
-        })
-        console.log("successfully save table")
-        //console.log("dt:",JSON.stringify({"players": dt} ))
-        //fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
-        //    if (err) throw err;
-        //});
+       // baseclient.query('update u set d = '+dt, (err, res)=>{
+       //     if (err){
+       //         console.log("database error! save")
+       //         throw err;
+       //     }
+       // })
+       // console.log("successfully save table")
+        console.log("dt:",JSON.stringify({"players": dt} ))
+        fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
+            if (err) throw err;
+        });
     }
     hasUser(user_name){
         var res = false
