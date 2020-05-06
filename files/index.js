@@ -46,7 +46,7 @@ function mainfunc(players) {
             if (typeof data !== 'object') {
                 data = JSON.parse(data);
             }
-            console.log(data, typeof data)
+            //console.log(data, typeof data)
             var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user != null) {
                 socket.emit("auth", {flag: true, item: user});
@@ -72,11 +72,8 @@ function mainfunc(players) {
         })
 
 
-        socket.on("getlobbies", function (data) {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
-            console.log(rooms.getAllRooms())
+        socket.on("getlobbies", () => {
+            //console.log("rooms here: ", rooms.getAllRooms())
             socket.emit("getlobbies", rooms.getAllRooms())
         })
 
