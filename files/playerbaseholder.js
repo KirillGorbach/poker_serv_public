@@ -1,31 +1,18 @@
-    'use strict';
-var fs = require('fs');
-var postgres = require('pg')
-var baseclient = new postgres.Client({
-    connectionString: "postgres://thenrgqrwnmzyo:8cbf13047db22f5e22913820e00274b73663b96bcd921da0647399eab338302e@ec2-34-195-169-25.compute-1.amazonaws.com:5432/db7g5320v7frvi",
-    ssl: true
-})
+'use strict';
+var fs = require('fs')
+var database = require('./querer')
 
 
 class PlayersBaseHolder{
     constructor() {
-        //this.fs = fs; //require('fs');
         this.players = [];
         this.name = "";
-        this.loadPlayersFromBase();
         this.beginner_money = 100
-        //baseclient.connect()
-        //this.checkDBTable()
     }
 
-    checkDBTable(){
-        baseclient.query('create table if not exists u (dt jsonb);', (err, res) => {
-            if (err){
-                console.log("database error! init")
-                throw err;
-            }
-        })
-        console.log("successfully init table")
+    setPlayers(pls){
+        this.players = pls
+        console.log(this.players)
     }
 
     updatePlayerMoney(player_name, new_money){
@@ -36,32 +23,7 @@ class PlayersBaseHolder{
         this.save()
     }
 
-    loadPlayersFromBase(){
-        this.players = []
-        var data = fs.readFileSync(__dirname+'/players.json', 'utf-8')
-        data = JSON.parse(data)
-        let flag = true//false
-        //var data = {}
-        //baseclient.query('select dt from u;', (err, val)=>{
-        //    if (err){
-        //        console.log("database error! read", typeof val)
-        //        throw err;
-        //    }
-        //    console.log("val:", val, typeof val)
-        //    if(val!==undefined) {
-        //        flag = true
-        //        for (let row in val.rows) {
-        //            data = JSON.parse(row)
-        //        }
-        //    }
-        //})
-        if (flag) {
-            var words = data //JSON.parse(data);
-            for (let i=0; i<words.players.length; i++)
-                this.players.push(words.players[i]);
-        }
-        console.log("successfully read table")
-    }
+
 
     addPlayer(player){
         this.players.push(player);
@@ -83,22 +45,11 @@ class PlayersBaseHolder{
     }
 
     save(){
-        this.setBaseFile(this.players);
+        database.setter(this.players)
+        //this.setBaseFile(this.players);
     }
 
-    setBaseFile(dt) {
-       // baseclient.query('update u set d = '+dt, (err, res)=>{
-       //     if (err){
-       //         console.log("database error! save")
-       //         throw err;
-       //     }
-       // })
-       // console.log("successfully save table")
-        console.log("dt:",JSON.stringify({"players": dt} ))
-        fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
-            if (err) throw err;
-        });
-    }
+
     hasUser(user_name){
         var res = false
         this.players.forEach(function (item) {
@@ -140,6 +91,49 @@ class PlayersBaseHolder{
         this.addPlayer(new_user)
         return new_user
     }
+
+    //setBaseFile(dt) {
+//
+//
+    //   // baseclient.query('update u set d = '+dt, (err, res)=>{
+    //   //     if (err){
+    //   //         console.log("database error! save")
+    //   //         throw err;
+    //   //     }
+    //   // })
+    //   // console.log("successfully save table")
+    //    //console.log("dt:",JSON.stringify({"players": dt} ))
+    //    //fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
+    //    //    if (err) throw err;
+    //    //});
+    //}
+    //loadPlayersFromBase(){
+    //    this.players = []
+    //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8')
+    //data = JSON.parse(data)
+    //let flag = true//false
+    //var data = {}
+    //baseclient.query('select dt from u;', (err, val)=>{
+    //    if (err){
+    //        console.log("database error! read", typeof val)
+    //        throw err;
+    //    }
+    //    console.log("val:", val, typeof val)
+    //    if(val!==undefined) {
+    //        flag = true
+    //        for (let row in val.rows) {
+    //            data = JSON.parse(row)
+    //        }
+    //    }
+    //})
+    //if (flag) {
+    //    var words = data //JSON.parse(data);
+    //    for (let i=0; i<words.players.length; i++)
+    //        this.players.push(words.players[i]);
+    //}
+    //console.log("successfully read table")
+    //}
+
 }
 
 
