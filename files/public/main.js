@@ -1,12 +1,13 @@
 var socket = io();
 socket.on('getlobbies', (data)=>{
     console.log(data)
+    let buf = "Lobbies available: "+data.rooms[0].name+ " with rate "+data.rooms[0].rate+" and "+data.rooms[1].name+ " with rate "+data.rooms[1].rate
+    document.getElementById("server_responce").innerHTML = buf
 })
 $(function () {
-    var hosy = "127.0.0.1"
-    var port = 3000
 
     socket.emit('getlobbies')
+
     function sendReg() {
         let inp_val;
         inp_val = {
