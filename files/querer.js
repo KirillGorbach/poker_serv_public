@@ -6,7 +6,7 @@ var connparam = {
     password: 'admin'
 }
 const { Pool } = require('pg')
-const pool = new Pool({connectionString: "postgres://tuser:admin@127.0.0.1:5432/pldb"})//process.env.DATABASE_URL})
+const pool = new Pool({connectionString: process.env.DATABASE_URL})//"postgres://tuser:admin@127.0.0.1:5432/pldb"})//process.env.DATABASE_URL})
 function query (text, params, callback){
         return pool.query(text, params, (err, res) => {
             callback(err, res)
