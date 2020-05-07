@@ -14,8 +14,15 @@ var sock_holder = require('./socketholder.js')
 
 //см. комментарий в ./querer.js
 var databse = require('./querer')
-databse.loader()
+//databse.loader()
+
+let baseHodl = new playersHolder.PlayersBaseHolder()
+baseHodl.loadPlayersFromBase()
+mainfunc([{dt:baseHodl.getPayers().players}])
+
+
 function mainfunc(players) {
+    console.log(players)
 
     var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
     playersBaseHolder.setPlayers(players[0].dt)

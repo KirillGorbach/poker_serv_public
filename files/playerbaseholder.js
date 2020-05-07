@@ -32,8 +32,8 @@ class PlayersBaseHolder{
 
     authPlayer(player_name, player_password){
         var res = null
+        console.log(this.players)
         this.players.forEach(function (item) {
-            //console.log("item name & msg.name:", item.name, msg.name);
             if (player_name === item.name && player_password === item.password)
                 res = item
         })
@@ -45,8 +45,8 @@ class PlayersBaseHolder{
     }
 
     save(){
-        database.setter(this.players)
-        //this.setBaseFile(this.players);
+        //database.setter(this.players)
+        this.setBaseFile(this.players);
     }
 
 
@@ -92,47 +92,18 @@ class PlayersBaseHolder{
         return new_user
     }
 
-    //setBaseFile(dt) {
-//
-//
-    //   // baseclient.query('update u set d = '+dt, (err, res)=>{
-    //   //     if (err){
-    //   //         console.log("database error! save")
-    //   //         throw err;
-    //   //     }
-    //   // })
-    //   // console.log("successfully save table")
-    //    //console.log("dt:",JSON.stringify({"players": dt} ))
-    //    //fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
-    //    //    if (err) throw err;
-    //    //});
-    //}
-    //loadPlayersFromBase(){
-    //    this.players = []
-    //var data = fs.readFileSync(__dirname+'/players.json', 'utf-8')
-    //data = JSON.parse(data)
-    //let flag = true//false
-    //var data = {}
-    //baseclient.query('select dt from u;', (err, val)=>{
-    //    if (err){
-    //        console.log("database error! read", typeof val)
-    //        throw err;
-    //    }
-    //    console.log("val:", val, typeof val)
-    //    if(val!==undefined) {
-    //        flag = true
-    //        for (let row in val.rows) {
-    //            data = JSON.parse(row)
-    //        }
-    //    }
-    //})
-    //if (flag) {
-    //    var words = data //JSON.parse(data);
-    //    for (let i=0; i<words.players.length; i++)
-    //        this.players.push(words.players[i]);
-    //}
-    //console.log("successfully read table")
-    //}
+    setBaseFile(dt) {
+        console.log("dt:",JSON.stringify({"players": dt} ))
+        fs.writeFile (__dirname+'/players.json', JSON.stringify({"players": dt} ), function(err) {
+            if (err) throw err;
+        });
+    }
+    loadPlayersFromBase(){
+        this.players = []
+        var data = fs.readFileSync(__dirname+'/players.json', 'utf-8')
+        data = JSON.parse(data)
+        this.players = data
+    }
 
 }
 
