@@ -45,8 +45,8 @@ class PlayersBaseHolder{
     }
 
     save(){
-        //database.setter(this.players)
-        this.setBaseFile(this.players);
+        database.setter(this.players)
+        //this.setBaseFile(this.players);
     }
 
 

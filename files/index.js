@@ -14,11 +14,11 @@ var sock_holder = require('./socketholder.js')
 
 //см. комментарий в ./querer.js
 var databse = require('./querer')
-//databse.loader()
+databse.loader()
 
-let baseHodl = new playersHolder.PlayersBaseHolder()
-baseHodl.loadPlayersFromBase()
-mainfunc([{dt:baseHodl.getPayers().players}])
+//let baseHodl = new playersHolder.PlayersBaseHolder()
+//baseHodl.loadPlayersFromBase()
+//mainfunc([{dt:baseHodl.getPayers().players}])
 
 
 function mainfunc(players) {
