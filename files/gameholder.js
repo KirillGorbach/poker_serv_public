@@ -1,16 +1,13 @@
+
+//класс следит за:
+//-ставками
+//-банком
+//-контролем денег игроков
+//-кто из игроков активен/неактивен
+//-раздачей карт
+//-подсчётом результатов игры и определением победителя
+//-обработкой действий игроков
 class GameHolder{
-    /*constructor(players) {
-        this.bank = 0
-        this.rate = 20
-        this.players = players
-        this.players_in_game = []
-        this.isRunning = false
-        this.cards_on_table = []
-        this.players_cards = []
-        this.ticker = new Ticker()
-        this.isFinished = false
-        this.players_hands = []
-    }*/
 
     constructor() {
         this.bank = 0
@@ -360,6 +357,14 @@ class GameHolder{
     }
 }
 
+
+//класс отвечает за очередность хода, и выполняет следующие задачи:
+//-реагирует на выход пользователя
+//-реагирует на ход игрока
+//-определяет лидера
+//-следит за готовностью игрока закончить (ва-банк, рейз до конца денег и т.п.)
+//-считает раунды
+//-отлавливает конец игры
 class Ticker{
     constructor() {
         this.players = []
@@ -444,7 +449,7 @@ class Ticker{
             // console.log("      Old lead", this.players[this.lead_player])
             if(!fold) this.changeLeadPlayer()
             //console.log("      New lead", this.players[this.lead_player])
-            if (this.countReadToFinish() >= this.players.length || this.players.length === 1)
+            if (this.countReadToFinish() >= this.players.length - 1 || this.players.length === 1)
                 res = true
             if (this.checkIfRoundDone() && !res) {
                 this.newRound()

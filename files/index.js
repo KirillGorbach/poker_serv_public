@@ -12,6 +12,7 @@ var roomsHolder = require('./roomholder.js');
 var sock_holder = require('./socketholder.js')
 
 
+//см. комментарий в ./querer.js
 var databse = require('./querer')
 databse.loader()
 function mainfunc(players) {
@@ -19,14 +20,22 @@ function mainfunc(players) {
     var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
     playersBaseHolder.setPlayers(players[0].dt)
     var rooms = new roomsHolder.RoomHolder()
+    //вот это я бы убрал
+    //функционал класса перекрывается io.sockets.to(lobby_to).emit(...)
     var socks = new sock_holder.SocketHolder()
+
 
     server.listen(port, () => {
         console.log("Listening to %d", port)
     });
 
+    //выдача html-страницы
     app.use(express.static(path.join(__dirname, 'public')))
 
+    //с хранением базы юзеров всё весело - данные:
+    //1) хранятся в оперативке
+    //2) дублируются в классах ниже
+    //          VVV
     function savePlayerMoney(player_name) {
         let his_money = rooms.getPlayerMoney(player_name)
         playersBaseHolder.updatePlayerMoney(player_name, his_money)
@@ -36,17 +45,18 @@ function mainfunc(players) {
     io.sockets.on('connection', function (socket) {
         var ID = (socket.id).toString()
         var id = socket.name
-        console.log("connected")
+        //console.log("connected")
         //console.log(id)
         //console.log("ID:", ID)
 
         //data = { name: , password: }
         socket.on("auth", function (data) {
-            console.log(data, typeof data, typeof {name: 'Kirill'})
+            //console.log(data, typeof data, typeof {name: 'Kirill'})
+            //если json пришёл в виде строки
             if (typeof data !== 'object') {
                 data = JSON.parse(data);
             }
-            //console.log(data, typeof data)
+            console.log("Connected:", data.name)
             var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user != null) {
                 socket.emit("auth", {flag: true, item: user});
@@ -99,12 +109,12 @@ function mainfunc(players) {
                     io.sockets.to(lobby_to).emit("newplayerjoinedlobby", user)
                     if (rooms.checkIfGameCanStart(lobby_to)) {
                         rooms.startGame(lobby_to)
-                        console.log("game starts!", lobby_to)
                         io.sockets.to(lobby_to).emit("gamestarts", {
                             roomparams: rooms.getFullRoomParams(lobby_to),
                             lead: rooms.getRoomLead(lobby_to)
                         })
-                        socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                        //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                        console.log("game starts!", lobby_to)
                     }
                 }
             } else
@@ -112,7 +122,6 @@ function mainfunc(players) {
         })
 
         //data = {lobbyname: , name:}
-        //TOD_O: сделать проверочку на конец игры в игровых листенерах
         socket.on("leavelobby", (data) => {
             if (typeof data !== 'object') {
                 data = JSON.parse(data);
@@ -152,10 +161,11 @@ function mainfunc(players) {
             if (typeof data !== 'object') {
                 data = JSON.parse(data);
             }
-            //console.log("check data:",data)
+            console.log("check data:",data)
             var lobby_to = data.lobbyname
             if (rooms.onCheck(data.name)) {
                 savePlayerMoney(data.name)
+                console.log({name: data.name, newlead: rooms.getRoomLead(lobby_to)})
                 io.sockets.to(lobby_to).emit("playercheck", {name: data.name, newlead: rooms.getRoomLead(lobby_to)})
                 socket.emit("youcheck", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
                 //console.log(rooms.rooms[0].game_holder.players_in_game)
@@ -173,7 +183,7 @@ function mainfunc(players) {
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
                     })
-                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
             } else {
                 socket.emit("youcheck", {flag: false, newlead: {}})
@@ -204,7 +214,7 @@ function mainfunc(players) {
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
                     })
-                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
 
             } else {
@@ -219,7 +229,7 @@ function mainfunc(players) {
             var lobby_to = data.lobbyname
             if (rooms.onRaise(data.name, data.rate)) {
                 savePlayerMoney(data.name)
-                io.sockets.to(lobby_to).emit("playerraise", {name: data.name, newlead: rooms.getRoomLead(lobby_to)})
+                io.sockets.to(lobby_to).emit("playerraise", {name: data.name, newlead: rooms.getRoomLead(lobby_to), rate: data.rate})
                 socket.emit("youraise", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
 
                 //console.log("in raise", rooms.rooms[0].game_holder.players_in_game)
@@ -237,14 +247,14 @@ function mainfunc(players) {
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
                     })
-                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
             } else {
                 socket.emit("youraise", {flag: false, newlead: {}})
             }
         })
         //data = { lobbyname: , name: }
-        socket.on('allin', (data) => {
+        socket.on("allin", (data) => {
             if (typeof data !== 'object') {
                 data = JSON.parse(data);
             }
@@ -270,7 +280,7 @@ function mainfunc(players) {
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
                     })
-                    socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
             } else {
                 socket.emit("youallin", {flag: false, newlead: {}})
@@ -284,6 +294,7 @@ function mainfunc(players) {
             console.log("Got from client:", msg);
             socket.emit("yess", msg)
         })
+
         socket.on("testdb", () => {
             console.log("all players:", playersBaseHolder.players);
             socket.emit("testdb", playersBaseHolder.players)

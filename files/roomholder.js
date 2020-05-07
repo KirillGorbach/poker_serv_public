@@ -2,7 +2,8 @@
 
 var gh = require('./gameholder.js');
 
-
+//класс хранит все лобби
+//передаёт игровые события в необходимые комнаты
 class RoomHolder{
     constructor() {
         this.room1 = new Room('room1')
@@ -239,7 +240,11 @@ class RoomHolder{
         return res
     }
 }
-
+//класс-обёртка для игры
+//отвечает за:
+//вывод информации о состоянии игры и игроках
+//передачу игровых событий в GameHolder
+//проверяет наличие игрока в комнате
 class Room{
     constructor(name) {
         this.name = name

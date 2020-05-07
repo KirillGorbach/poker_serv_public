@@ -1,6 +1,5 @@
 const { Pool } = require('pg')
 let dburl = process.env.DATABASE_URL
-
 //пул запросов (иначе - подключение к базе данных
 const pool = new Pool({connectionString: dburl})
 
