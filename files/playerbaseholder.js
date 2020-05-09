@@ -32,7 +32,7 @@ class PlayersBaseHolder{
 
     authPlayer(player_name, player_password){
         var res = null
-        console.log(this.players)
+        //console.log(this.players)
         this.players.forEach(function (item) {
             if (player_name === item.name && player_password === item.password)
                 res = item

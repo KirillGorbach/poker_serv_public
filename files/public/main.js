@@ -1,7 +1,7 @@
 var socket = io();
 socket.on('getlobbies', (data)=>{
     console.log(data)
-    let buf = "Lobbies available: "+data.rooms[0].name+ " with rate "+data.rooms[0].rate+" and "+data.rooms[1].name+ " with rate "+data.rooms[1].rate
+    let buf = "Fuck you! We encode our information!"
     document.getElementById("server_responce").innerHTML = buf
 })
 $(function () {

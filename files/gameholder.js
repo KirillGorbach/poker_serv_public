@@ -72,13 +72,13 @@ class GameHolder{
             //console.log("this.players_in_game[index_g].money", this.players_in_game[index_g].money)
             //console.log("this.players[index_g].money", this.players[index_a].money)
             if (this.players[index_a].money < 0 || this.players_in_game[index_g].money < 0)
-                console.log("<----------ACHTUNG! Player gets mins money!", player_name)
+                console.error("<----------ACHTUNG! Player gets mins money!", player_name)
         }else{
             var index_g = this.getPlayerIndexInGame(player_name)
             var index_a = this.getPlayerIndexInAll(player_name)
             this.players_in_game[index_g].money = 0
             if (this.players[index_a].money < 0 || this.players_in_game[index_g].money < 0)
-                console.log("<----------ACHTUNG! Player gets mins money!", player_name)
+                console.error("<----------ACHTUNG! Player gets mins money!", player_name)
         }
     }
 
@@ -89,7 +89,7 @@ class GameHolder{
 
             this.players_in_game[index_g].money += val
             if (this.players[index_a].money < 0 || this.players_in_game[index_g].money < 0)
-                console.log("<----------ACHTUNG! Player gets mins money!", player_name)
+                console.error("<----------ACHTUNG! Player gets mins money!", player_name)
         }
     }
 
@@ -160,7 +160,7 @@ class GameHolder{
     onRaise(player_name, new_val){
         if(this.isRunning) {
             if(new_val != null && !isNaN(new_val)) this.rate = new_val
-            else console.log("ACHTUNG! None or null new val in raise player", player_name)
+            else console.error("ACHTUNG! None or null new val in raise player", player_name)
             var index = this.getPlayerIndexInGame(player_name)
             if (index != null) {
                 if(this.checkPlayerHasMoney(player_name)) {
@@ -297,10 +297,9 @@ class GameHolder{
             for(let i=0; i<this.players_in_game.length; i++){
                 this.players_in_game[i].power = this.getPowerInside(this.players_in_game[i].name)
             }
-            //console.log(this.players_in_game)
+            //console.debug(this.players_in_game)
             let maxPower = 0
             let winners = []
-            //console.log(this.players_in_game.length)
             for(let i=0; i<this.players_in_game.length; i++) {
                 if(maxPower === this.players_in_game[i].power)
                     winners.push(this.players_in_game[i].name)
@@ -312,7 +311,12 @@ class GameHolder{
                     }
                 }
             }
-            let win_val = Math.floor(this.bank/winners.length)
+            //console.debug(winners)
+            let win_val
+            if (this.bank !== 0 )
+                win_val = Math.floor(this.bank/winners.length)
+            else
+                win_val = 0
 
             for(let i=0; i<winners.length; i++)
                 this.increasePlayerMoney(winners[i], win_val)

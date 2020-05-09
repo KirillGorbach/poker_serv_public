@@ -2,7 +2,6 @@ const { Pool } = require('pg')
 let dburl = process.env.DATABASE_URL
 //пул запросов (иначе - подключение к базе данных
 const pool = new Pool({connectionString: dburl})
-
 //шаблонная функция для краткости
 function query (text, params, callback){
         return pool.query(text, params, (err, res) => {

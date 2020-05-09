@@ -294,24 +294,24 @@ class Room{
     getFullJSON(){
         let g_pl = []
         for(let i=0; i<this.game_holder.players_in_game.length; i++)
-            g_pl.push({ name: this.game_holder.players_in_game[i].name
-                        ,money: this.game_holder.players_in_game[i].money
-                        ,picture: this.game_holder.players_in_game[i].picture
+            g_pl.push({ name:       this.game_holder.players_in_game[i].name
+                        ,money:     this.game_holder.players_in_game[i].money
+                        ,picture:   this.game_holder.players_in_game[i].picture
                         })
         let a_pl = []
         for(let i=0; i<this.game_holder.players.length; i++)
-            a_pl.push({ name: this.game_holder.players[i].name
-                        ,money: this.game_holder.players[i].money
-                        ,picture: this.game_holder.players[i].picture
+            a_pl.push({ name:       this.game_holder.players[i].name
+                        ,money:     this.game_holder.players[i].money
+                        ,picture:   this.game_holder.players[i].picture
                         })
         return {
-			bank: this.game_holder.bank
-            ,rate:this.game_holder.base_rate
-            ,isgamerunning:this.game_holder.isRunning
-            ,name:this.name
-            ,cards: this.getCardsAfterStart()
-            ,playersingame:g_pl
-            ,allplayers:a_pl
+			bank:               this.game_holder.bank
+            ,rate:              this.game_holder.base_rate
+            ,isgamerunning:     this.game_holder.isRunning
+            ,name:              this.name
+            ,cards:             this.getCardsAfterStart()
+            ,playersingame:     g_pl
+            ,allplayers:        a_pl
         }
     }
 

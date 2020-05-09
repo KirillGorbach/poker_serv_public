@@ -11,6 +11,14 @@ var playersHolder = require('./playerbaseholder');
 var roomsHolder = require('./roomholder.js');
 var sock_holder = require('./socketholder.js')
 
+var reqEncoder = require('./encoder/encoder')
+const encodeJSON = function (some_JSON) {
+    return reqEncoder.Encoder.encodeJSON(some_JSON)
+}
+const decodeToJSON = function (str) {
+    return reqEncoder.Encoder.decodeToJSON(str)
+}
+
 
 //см. комментарий в ./querer.js
 var databse = require('./querer')
@@ -22,7 +30,7 @@ databse.loader()
 
 
 function mainfunc(players) {
-    console.log(players)
+    console.debug(players)
 
     var playersBaseHolder = new playersHolder.PlayersBaseHolder(fs)
     playersBaseHolder.setPlayers(players[0].dt)
@@ -30,6 +38,8 @@ function mainfunc(players) {
     //вот это я бы убрал
     //функционал класса перекрывается io.sockets.to(lobby_to).emit(...)
     var socks = new sock_holder.SocketHolder()
+
+    var playersOfflineMap = new Map()
 
 
     server.listen(port, () => {
@@ -59,46 +69,38 @@ function mainfunc(players) {
         //data = { name: , password: }
         socket.on("auth", function (data) {
             //console.log(data, typeof data, typeof {name: 'Kirill'})
-            //если json пришёл в виде строки
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
-            console.log("Connected:", data.name)
+            data = decodeToJSON(data)
+            console.debug("Connected:", data.name)
             var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user != null) {
-                socket.emit("auth", {flag: true, item: user});
+                socket.emit("auth", encodeJSON({flag: true, item: user}));
                 socks.addUser(user.name)
             } else
-                socket.emit("auth", {flag: false, item: {}})
+                socket.emit("auth", encodeJSON({flag: false, item: {}}))
         })
 
         //data = { name: , password: , picture: }
         socket.on("registration", function (data) {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
             if (playersBaseHolder.hasUser(data.name)) {
-                console.log("already registered", data.name)
-                socket.emit("registration", {is_reg: true, player: {}})
+                console.debug("already registered", data.name)
+                socket.emit("registration", encodeJSON({is_reg: true, player: {}}))
             } else {
                 let new_user = playersBaseHolder.regUser(data.name, data.password, data.picture)
                 console.log(new_user)
                 socks.addUser(new_user)
-                socket.emit("registration", {is_reg: false, player: new_user})
+                socket.emit("registration", encodeJSON({is_reg: false, player: new_user}))
             }
         })
 
 
         socket.on("getlobbies", () => {
-            //console.log("rooms here: ", rooms.getAllRooms())
-            socket.emit("getlobbies", rooms.getAllRooms())
+            socket.emit("getlobbies", encodeJSON(rooms.getAllRooms()))
         })
 
         //data = { lobbyname: , name: }
         socket.on("enterlobby", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
             var user = playersBaseHolder.getUserSafeInfo(data.name);
             var lobby_to = data.lobbyname
             if (rooms.checkIfCanJoinRoom(lobby_to) && user != null) {
@@ -110,201 +112,218 @@ function mainfunc(players) {
 
                     //console.log("player",data.name,"joined", lobby_to)
                     //console.log(rooms.rooms[0].game_holder.players)
-                    socket.emit("enterlobby", {didenter: true, lobbyinfo: rooms.getFullRoomParams(lobby_to)})
+                    socket.emit("enterlobby", encodeJSON({didenter: true, lobbyinfo: rooms.getFullRoomParams(lobby_to)}))
 
 
-                    io.sockets.to(lobby_to).emit("newplayerjoinedlobby", user)
+                    io.sockets.to(lobby_to).emit("newplayerjoinedlobby", encodeJSON(user))
                     if (rooms.checkIfGameCanStart(lobby_to)) {
                         rooms.startGame(lobby_to)
-                        io.sockets.to(lobby_to).emit("gamestarts", {
+                        io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                             roomparams: rooms.getFullRoomParams(lobby_to),
                             lead: rooms.getRoomLead(lobby_to)
-                        })
+                        }))
                         //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                         console.log("game starts!", lobby_to)
                     }
                 }
             } else
-                socket.emit("enterlobby", {didenter: false, lobbyinfo: {}})
+                socket.emit("enterlobby", encodeJSON({didenter: false, lobbyinfo: {}}))
+        })
+
+        //data = { name: , lobbyname: }
+        socket.on("stop", (data) => {
+            data = decodeToJSON(data)
+            let playerExcludeFromLobbyTimeout = setTimeout(excludePlayer, 20000, data)
+            io.sockets.to(data.lobbyname).emit("playerstops", encodeJSON({name:data.name}))
+            playersOfflineMap.set(data.name, playerExcludeFromLobbyTimeout)
+        })
+
+        //data = { name: , password: , lobbyname: }
+        socket.on("restore", (data) => {
+            data = decodeToJSON(data)
+            var user = playersBaseHolder.authPlayer(data.name, data.password)
+            let lobby_to = data.lobbyname
+            if (user){
+                socket.join(data.lobbyname)
+                io.sockets.to(data.lobbyname).emit("plauerrestores", encodeJSON({name:data.name}))
+                clearTimeout(playersOfflineMap.get(data.name))
+                playersOfflineMap.delete(data.name)
+                socket.emit("restore", encodeJSON({didrestore: true, roomparams: {
+                        players: rooms.getFullRoomParams(lobby_to),
+                        lead: rooms.getRoomLead(lobby_to)
+                    }
+                }))
+            }else
+                socket.emit("restore", encodeJSON({didrestore: false, roomparams: {}}))
         })
 
         //data = {lobbyname: , name:}
         socket.on("leavelobby", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
+            excludePlayer(data)
+        })
+
+        //data = {lobbyname: , name:}
+        function excludePlayer(data){
             let user_n = data.name
             let lobby_to = data.lobbyname
             savePlayerMoney(user_n)
-            socket.broadcast.to(lobby_to).emit("playerleft", {name: user_n, newlead: rooms.getRoomLead(lobby_to)})
-            socket.emit("youleft", {money: rooms.getPlayerMoney(user_n)})
-            //console.log("Player left", lobby_to, user_n)
+            socket.emit("youleft", encodeJSON({money: rooms.getPlayerMoney(user_n)}))
             rooms.onPlayerLeave(user_n)
+            io.sockets.to(lobby_to).emit("playerleft", encodeJSON({name: user_n, newlead: rooms.getRoomLead(lobby_to)}))
             if (rooms.checkGameEnd(lobby_to)) {
-                console.log("endgame!")
-                io.sockets.to(lobby_to).emit("endgame", rooms.getWinners(lobby_to))
+                console.debug("endgame!")
+                io.sockets.to(lobby_to).emit("endgame", encodeJSON(rooms.getWinners(lobby_to)))
             }
             if (rooms.checkIfGameCanStart(lobby_to)) {
                 rooms.startGame(lobby_to)
-                console.log("game starts!", lobby_to)
-                io.sockets.to(lobby_to).emit("gamestarts", {
+                console.debug("game starts!", lobby_to)
+                io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                     players: rooms.getFullRoomParams(lobby_to),
                     lead: rooms.getRoomLead(lobby_to)
-                })
-                //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                }))
             }
-        })
+        }
+
         //data = { name: , power: }
         socket.on("myhandpower", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
-            //console.log("power:", data)
+            data = decodeToJSON(data)
+            console.debug("power:", data)
             rooms.initPlayerHand(data.name, data.power)
         })
-
         //data = { name: , lobbyname: }
         socket.on("check", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
-            console.log("check data:",data)
+            data = decodeToJSON(data)
             var lobby_to = data.lobbyname
             if (rooms.onCheck(data.name)) {
                 savePlayerMoney(data.name)
-                console.log({name: data.name, newlead: rooms.getRoomLead(lobby_to)})
-                io.sockets.to(lobby_to).emit("playercheck", {name: data.name, newlead: rooms.getRoomLead(lobby_to)})
-                socket.emit("youcheck", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
-                //console.log(rooms.rooms[0].game_holder.players_in_game)
+                io.sockets.to(lobby_to).emit("playercheck", encodeJSON({name: data.name, newlead: rooms.getRoomLead(lobby_to)}))
+                socket.emit("youcheck", encodeJSON({flag: true, newlead: rooms.getRoomLead(lobby_to)}))
 
                 if (rooms.checkGameEnd(lobby_to)) {
-                    console.log("endgame!")
-                    io.sockets.to(lobby_to).emit("endgame", rooms.getWinners(lobby_to))
+                    console.debug("endgame!")
+                    io.sockets.to(lobby_to).emit("endgame", encodeJSON(rooms.getWinners(lobby_to)))
                     let playersInFinishedGame = rooms.getRoomPlayersForSave(lobby_to)
                     for (let i = 0; i < playersInFinishedGame.length; i++)
                         savePlayerMoney(playersInFinishedGame[i].name)
                 }
                 if (rooms.checkIfGameCanStart(lobby_to)) {
                     rooms.startGame(lobby_to)
-                    io.sockets.to(lobby_to).emit("gamestarts", {
+                    io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
-                    })
+                    }))
                     //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
             } else {
-                socket.emit("youcheck", {flag: false, newlead: {}})
+                socket.emit("youcheck", encodeJSON({flag: false, newlead: {}}))
             }
         })
         //data = { name: , lobbyname: }
         socket.on("fold", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
             var lobby_to = data.lobbyname
             if (rooms.onFold(data.name)) {
                 savePlayerMoney(data.name)
-                socket.broadcast.to(lobby_to).emit("playerfold", {
+                io.sockets.to(lobby_to).emit("playerfold", encodeJSON({
                     name: data.name,
                     newlead: rooms.getRoomLead(lobby_to)
-                })
-                socket.emit("youfold", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
+                }))
+                socket.emit("youfold", encodeJSON({flag: true, newlead: rooms.getRoomLead(lobby_to)}))
 
                 if (rooms.checkGameEnd(lobby_to)) {
-                    socket.broadcast.to(lobby_to).emit("endgame", rooms.getWinners(lobby_to))
+                    io.sockets.to(lobby_to).emit("endgame", encodeJSON(rooms.getWinners(lobby_to)))
                     let playersInFinishedGame = rooms.getRoomPlayersForSave(data.lobbyname)
                     for (let i = 0; i < playersInFinishedGame.length; i++)
                         savePlayerMoney(playersInFinishedGame[i].name)
                 }
                 if (rooms.checkIfGameCanStart(lobby_to)) {
-                    io.sockets.to(lobby_to).emit("gamestarts", {
+                    io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
-                    })
+                    }))
                     //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
 
             } else {
-                socket.emit("youfold", {flag: false, newlead: {}})
+                socket.emit("youfold", encodeJSON({flag: false, newlead: {}}))
             }
         })
         //data = { name: , lobbyname: , rate: }
         socket.on("raise", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
             var lobby_to = data.lobbyname
             if (rooms.onRaise(data.name, data.rate)) {
                 savePlayerMoney(data.name)
-                io.sockets.to(lobby_to).emit("playerraise", {name: data.name, newlead: rooms.getRoomLead(lobby_to), rate: data.rate})
-                socket.emit("youraise", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
+                io.sockets.to(lobby_to).emit("playerraise", encodeJSON(
+                    {
+                                    name: data.name
+                                    ,newlead: rooms.getRoomLead(lobby_to)
+                                    ,rate: data.rate
+                                }))
+                socket.emit("youraise", encodeJSON({flag: true, newlead: rooms.getRoomLead(lobby_to)}))
 
-                //console.log("in raise", rooms.rooms[0].game_holder.players_in_game)
 
                 if (rooms.checkGameEnd(lobby_to)) {
-                    console.log("endgame!")
-                    io.sockets.to(lobby_to).emit("endgame", rooms.getWinners(lobby_to))
+                    console.debug("endgame!")
+                    io.sockets.to(lobby_to).emit("endgame", encodeJSON(rooms.getWinners(lobby_to)))
                     let playersInFinishedGame = rooms.getRoomPlayersForSave(lobby_to)
                     for (let i = 0; i < playersInFinishedGame.length; i++)
                         savePlayerMoney(playersInFinishedGame[i].name)
                 }
                 if (rooms.checkIfGameCanStart(lobby_to)) {
                     rooms.startGame(lobby_to)
-                    io.sockets.to(lobby_to).emit("gamestarts", {
+                    io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
-                    })
+                    }))
                     //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
                 }
             } else {
-                socket.emit("youraise", {flag: false, newlead: {}})
+                socket.emit("youraise", encodeJSON({flag: false, newlead: {}}))
             }
         })
         //data = { lobbyname: , name: }
         socket.on("allin", (data) => {
-            if (typeof data !== 'object') {
-                data = JSON.parse(data);
-            }
+            data = decodeToJSON(data)
             //console.log("in allin", data)
             var lobby_to = data.lobbyname
             if (rooms.onAllIn(data.name)) {
                 savePlayerMoney(data.name)
-                io.sockets.to(lobby_to).emit("playerallin", {name: data.name, newlead: rooms.getRoomLead(lobby_to)})
-                socket.emit("youallin", {flag: true, newlead: rooms.getRoomLead(lobby_to)})
+                io.sockets.to(lobby_to).emit("playerallin", encodeJSON({name: data.name, newlead: rooms.getRoomLead(lobby_to)}))
+                socket.emit("youallin", encodeJSON({flag: true, newlead: rooms.getRoomLead(lobby_to)}))
 
                 rooms.onRaise(data.name, data.rate)
 
                 if (rooms.checkGameEnd(lobby_to)) {
-                    console.log("endgame!")
-                    io.sockets.to(lobby_to).emit("endgame", rooms.getWinners(lobby_to))
+                    console.debug("endgame!")
+                    io.sockets.to(lobby_to).emit("endgame", encodeJSON(rooms.getWinners(lobby_to)))
                     let playersInFinishedGame = rooms.getRoomPlayersForSave(lobby_to)
                     for (let i = 0; i < playersInFinishedGame.length; i++)
                         savePlayerMoney(playersInFinishedGame[i].name)
                 }
                 if (rooms.checkIfGameCanStart(lobby_to)) {
                     rooms.startGame(lobby_to)
-                    io.sockets.to(lobby_to).emit("gamestarts", {
+                    io.sockets.to(lobby_to).emit("gamestarts", encodeJSON({
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
-                    })
-                    //socks.sendToRoomCards(lobby_to, rooms.getCardsAfterGameStart(lobby_to))
+                    }))
                 }
             } else {
-                socket.emit("youallin", {flag: false, newlead: {}})
+                socket.emit("youallin", encodeJSON({flag: false, newlead: {}}))
             }
         })
 
+
         socket.on("yess", (msg) => {
-            if (typeof data !== 'object') {
-                msg = JSON.parse(msg);
-            }
-            console.log("Got from client:", msg);
-            socket.emit("yess", msg)
+            msg = reqEncoder.Encoder.decode(msg)
+            console.debug("Got from client:", msg);
+            socket.emit("yess", reqEncoder.Encoder.encode(msg))
         })
 
         socket.on("testdb", () => {
-            console.log("all players:", playersBaseHolder.players);
-            socket.emit("testdb", playersBaseHolder.players)
+            console.debug("all players:", playersBaseHolder.players);
+            socket.emit("testdb", encodeJSON(playersBaseHolder.players))
         })
     })
 
