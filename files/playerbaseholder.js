@@ -24,7 +24,6 @@ class PlayersBaseHolder{
     }
 
 
-
     addPlayer(player){
         this.players.push(player);
         this.save()
