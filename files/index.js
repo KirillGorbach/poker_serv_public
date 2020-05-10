@@ -48,12 +48,15 @@ function mainfunc(players) {
     function checkToken(name, token) {
         return tokenMap.get(name) === token
     }
-
+    var authToken = "AUTHTOKEN"
+    function checkAuthToken(name, authTock){
+        return playersBaseHolder.hasUser(name) && authTock === authToken
+    }
     server.listen(port, () => {
         console.log("Listening to %d", port)
     })
 
-        //httpsServ.listen(port, () => {
+    //httpsServ.listen(port, () => {
     //    console.log("Listening to %d", port)
             //})
 
@@ -81,13 +84,32 @@ function mainfunc(players) {
         socket.on("auth", function (data) {
             //console.log(data, typeof data, typeof {name: 'Kirill'})
             data = decodeToJSON(data)
-            console.debug("Connected:", data.name)
             var user = playersBaseHolder.authPlayer(data.name, data.password);
             if (user != null) {
                 let new_token = getNewToken()
                 tokenMap.set(data.name, new_token)
-                socket.emit("auth", encodeJSON({flag: true, token: new_token, item: user}))
+                socket.emit("auth", encodeJSON({flag: true, token: new_token, newauthtoken: authToken, item: user}))
                 socks.addUser(user.name)
+                console.debug("Connected:", data.name)
+            } else
+                socket.emit("auth", encodeJSON({flag: false, token:{}, newauthtoken: {}, item: {}}))
+        })
+
+        //Чтобы не вводить пароль каждый раз, игроку выдаётся authtoken,
+        //который можно использовать как пароль при следующем входе
+        //В дальнейшем он будет генерироваться каждый раз для нового пользователя,
+        //н о пока что он статичен для всех
+        //data = { name: , authtoken: }
+        socket.on("authbytoken", function (data) {
+            //console.log(data, typeof data, typeof {name: 'Kirill'})
+            data = decodeToJSON(data)
+            var user = playersBaseHolder.authPlayerByToken(data.name, data.authtoken, authToken)
+            if (user != null) {
+                let new_token = getNewToken()
+                tokenMap.set(data.name, new_token)
+                socket.emit("auth", encodeJSON({flag: true, token: new_token, item: user, newauthtoken: authToken}))
+                socks.addUser(user.name)
+                console.debug("Connected:", data.name)
             } else
                 socket.emit("auth", encodeJSON({flag: false, token:{}, item: {}}))
         })
@@ -153,7 +175,7 @@ function mainfunc(players) {
             }
         })
 
-        //data = { name: , password: , lobbyname: , token: }
+        //data = { name: , password: , lobbyname: }
         socket.on("restore", (data) => {
             data = decodeToJSON(data)
             var user = playersBaseHolder.authPlayer(data.name, data.password)
@@ -163,13 +185,15 @@ function mainfunc(players) {
                 io.sockets.to(lobby_to).emit("playerrestores", encodeJSON({name:data.name}))
                 clearTimeout(playersOfflineMap.get(data.name))
                 playersOfflineMap.delete(data.name)
-                socket.emit("restore", encodeJSON({didrestore: true, roomparams: {
+                let new_token = getNewToken()
+                tokenMap.set(data.name, new_token)
+                socket.emit("restore", encodeJSON({didrestore: true, token: new_token, roomparams: {
                         players: rooms.getFullRoomParams(lobby_to),
                         lead: rooms.getRoomLead(lobby_to)
                     }
                 }))
             }else
-                socket.emit("restore", encodeJSON({didrestore: false, roomparams: {}}))
+                socket.emit("restore", encodeJSON({didrestore: false, roomparams: {}, token:{}}))
         })
 
         //data = {lobbyname: , name:}

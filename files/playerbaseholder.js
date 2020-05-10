@@ -39,6 +39,19 @@ class PlayersBaseHolder{
         return res;
     }
 
+    authPlayerByToken(player_name, tocken_form_client, auth_token){
+        if(auth_token === tocken_form_client) {
+            var res = null
+            //console.log(this.players)
+            this.players.forEach(function (item) {
+                if (player_name === item.name)
+                    res = item
+            })
+            return res
+        }else
+            return null
+    }
+
     getPayers(){
         return this.players;
     }
@@ -106,35 +119,4 @@ class PlayersBaseHolder{
 
 }
 
-
-
-/*
-function gf() {
-    var result = []
-    result = fs.readFile(__dirname+'/files/players.json',function(err,content){
-        var r = []
-        var parseJson = JSON.parse(content);
-        //console.log("parseJSON:", parseJson);
-        for (let i=0; i<parseJson.players.length; i++){
-            r.push(parseJson.players[i])
-           // console.log("pareJSON:",parseJson.players[i])
-        }
-        console.log("in rf: ",r);
-        return r;
-
-    });
-    console.log("result:", result);
-    return result;
-}*/
-
-
-class A{
-    constructor() {
-        console.log("constr!");
-    }
-    say(){
-        console.log("hello!");
-    }
-
-}
-module.exports = {A, PlayersBaseHolder}
+module.exports = {PlayersBaseHolder}
