@@ -2,7 +2,7 @@ const { Pool } = require('pg')
 let dburl = process.env.DATABASE_URL
 let locl = "postgres://tuser:admin@127.0.0.1:5432/pldb"
 //пул запросов (иначе - подключение к базе данных
-const pool = new Pool({connectionString: locl})
+const pool = new Pool({connectionString: dburl})
 //шаблонная функция для краткости
 function query (text, params, callback){
         return pool.query(text, params, (err, res) => {
