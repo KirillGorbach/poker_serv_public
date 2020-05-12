@@ -175,10 +175,10 @@ function mainfunc(players) {
             }
         })
 
-        //data = { name: , password: , lobbyname: }
+        //data = { name: , token: , lobbyname: }
         socket.on("restore", (data) => {
             data = decodeToJSON(data)
-            var user = playersBaseHolder.authPlayer(data.name, data.password)
+            var user = playersBaseHolder.authPlayerByToken(data.name, data.token, authToken)
             let lobby_to = data.lobbyname
             if (user && checkToken(data.name, data.token)){
                 socket.join(lobby_to)
